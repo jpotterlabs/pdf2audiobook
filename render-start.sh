@@ -38,18 +38,21 @@ elif [ "$table_exists" = "users" ] && [ "$schema_needs_update" = "true" ]; then
     echo "Database tables exist but schema needs updates..."
     echo "Running schema migrations to add missing columns..."
 
-    # Set alembic configuration
-    export ALEMBIC_CONFIG=alembic.ini
+    # Set alembic configuration (in project root, one level up)
+    export ALEMBIC_CONFIG=../alembic.ini
 
     # Check if alembic.ini exists
-    if [ ! -f "alembic.ini" ]; then
-        echo "ERROR: alembic.ini not found in $(pwd)"
-        ls -la
+    if [ ! -f "../alembic.ini" ]; then
+        echo "ERROR: alembic.ini not found in $(pwd)/.."
+        echo "Current directory: $(pwd)"
+        echo "Contents of parent directory:"
+        ls -la ..
         exit 1
     fi
 
-    # Try running migrations first
-    if alembic upgrade head; then
+    # Try running migrations first from parent directory
+    cd .. && alembic upgrade head && cd backend
+    if [ $? -eq 0 ]; then
         echo "Database schema updates completed successfully"
     else
         echo "Alembic migration failed, trying manual schema update..."
@@ -106,18 +109,21 @@ EOF
 else
     echo "Running database migrations for first-time setup..."
 
-    # Set alembic configuration
-    export ALEMBIC_CONFIG=alembic.ini
+    # Set alembic configuration (in project root, one level up)
+    export ALEMBIC_CONFIG=../alembic.ini
 
     # Check if alembic.ini exists
-    if [ ! -f "alembic.ini" ]; then
-        echo "ERROR: alembic.ini not found in $(pwd)"
-        ls -la
+    if [ ! -f "../alembic.ini" ]; then
+        echo "ERROR: alembic.ini not found in $(pwd)/.."
+        echo "Current directory: $(pwd)"
+        echo "Contents of parent directory:"
+        ls -la ..
         exit 1
     fi
 
-    # Run migrations with error handling
-    if alembic upgrade head; then
+    # Run migrations with error handling from parent directory
+    cd .. && alembic upgrade head && cd backend
+    if [ $? -eq 0 ]; then
         echo "Database migrations completed successfully"
     else
         echo "Database migration failed - this might be normal if tables already exist"
