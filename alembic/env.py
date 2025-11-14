@@ -101,7 +101,8 @@ def run_migrations_online():
 
     with connectable.connect() as connection:
         # Check and create ENUM types before running migrations
-        check_and_create_enums(connection)
+        # NOTE: Commented out because migrations handle ENUM creation idempotently
+        # check_and_create_enums(connection)
 
         context.configure(connection=connection, target_metadata=target_metadata)
 
