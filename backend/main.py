@@ -1,0 +1,342 @@
+import os
+import time
+
+import boto3
+import redis
+from app.api.v1 import auth, jobs, payments, webhooks
+from app.core.config import settings
+from app.core.database import SessionLocal, get_db
+from app.core.exceptions import (
+    AppException,
+    app_exception_handler,
+    general_exception_handler,
+    http_exception_handler,
+)
+from app.core.logging import setup_logging
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from loguru import logger
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from sqlalchemy import text
+
+# --- App Initialization ---
+setup_logging()
+
+# Validate production settings (only if required settings are available)
+try:
+    if settings.is_production:
+        # Only validate if we have the basic required settings
+        if (
+            hasattr(settings, "SECRET_KEY")
+            and settings.SECRET_KEY
+            and not settings.SECRET_KEY == "dev-secret-key-change-in-production"
+        ):
+            settings.validate_production_settings()
+        else:
+            logger.warning(
+                "Production environment detected but SECRET_KEY not properly configured. Skipping validation."
+            )
+except (ValueError, AttributeError) as e:
+    logger.error(f"Configuration validation failed: {e}")
+    # Don't raise in build time, just log
+    pass
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.PROJECT_VERSION,
+    description="""
+    PDF2Audiobook SaaS Platform API
+
+    A comprehensive API for converting PDF documents into high-quality audiobooks using advanced text-to-speech technology.
+
+    ## Features
+
+    * **PDF Processing**: Extract and convert text from PDF documents
+    * **Multiple TTS Providers**: Support for OpenAI, Google Cloud, AWS Polly, Azure, and ElevenLabs
+    * **Voice Customization**: Choose from various voices and adjust reading speed
+    * **AI-Powered Summaries**: Generate intelligent summaries for complex documents
+    * **Secure Authentication**: JWT-based authentication with Clerk integration
+    * **Usage Tracking**: Monitor credits and subscription usage
+
+    ## Authentication
+
+    All API endpoints require authentication via JWT tokens obtained from Clerk.
+    Include the token in the Authorization header: `Authorization: Bearer <token>`
+
+    ## Rate Limiting
+
+    API requests are rate limited to prevent abuse. Current limits: 100 requests per minute globally.
+
+    ## File Upload Limits
+
+    - Maximum file size: 50MB
+    - Supported formats: PDF only
+    - Content type: application/pdf
+    """,
+    debug=settings.DEBUG,
+    contact={
+        "name": "PDF2Audiobook Support",
+        "email": "support@pdf2audiobook.com",
+    },
+    license_info={
+        "name": "Proprietary",
+    },
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+)
+
+# --- Middleware ---
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+
+    # HSTS (HTTP Strict Transport Security) - only in production
+    if not settings.DEBUG:
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+
+    return response
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    logger.info(
+        f'"{request.method} {request.url.path}" {response.status_code} {process_time:.4f}s'
+    )
+    return response
+
+
+# --- Middleware ---
+
+# Rate Limiting
+limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
+app.state.limiter = limiter
+# Rate limiting (temporarily disabled)
+# app.state.limiter = limiter
+# app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+# CORS - Environment-aware configuration
+# Precedence:
+# 1. CORS_ALLOW_ORIGINS (comma-separated, from environment)
+# 2. ALLOWED_HOSTS (legacy, from environment or settings)
+# 3. Safe defaults in development; explicit-only in production.
+def _parse_csv_env(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+# Read raw from environment to avoid surprises with settings parsing
+cors_from_env = _parse_csv_env(os.getenv("CORS_ALLOW_ORIGINS"))
+
+# Backwards compatibility / secondary source:
+# - Prefer raw ALLOWED_HOSTS env as CSV if present.
+# - Otherwise, fall back to Settings.ALLOWED_HOSTS (list[str]) if set.
+raw_allowed_hosts_env = os.getenv("ALLOWED_HOSTS")
+if raw_allowed_hosts_env:
+    hosts_from_env = _parse_csv_env(raw_allowed_hosts_env)
+else:
+    hosts_from_env = list(getattr(settings, "ALLOWED_HOSTS", []) or [])
+
+if cors_from_env:
+    allowed_origins = cors_from_env
+elif hosts_from_env:
+    allowed_origins = hosts_from_env
+else:
+    if settings.is_production:
+        # In production, require explicit configuration; empty list means CORS disabled.
+        allowed_origins = []
+    else:
+        # Development defaults
+        allowed_origins = [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8000",
+        ]
+
+logger.info(
+    f"CORS_ALLOW_ORIGINS={os.getenv('CORS_ALLOW_ORIGINS')!r}, "
+    f"ALLOWED_HOSTS_ENV={raw_allowed_hosts_env!r}, "
+    f"settings.ALLOWED_HOSTS={getattr(settings, 'ALLOWED_HOSTS', None)!r}"
+)
+logger.info(f"CORS allowed_origins resolved to: {allowed_origins}")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=[
+        "*"
+    ],  # Allow all methods; browser + route handlers will enforce specifics.
+    allow_headers=["*"],  # Allow all headers, including Authorization & custom ones.
+)
+
+# GZip Compression
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# --- Exception Handlers ---
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(AppException, app_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
+
+# --- API Routers ---
+
+try:
+    app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+    app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["Jobs"])
+    app.include_router(payments.router, prefix="/api/v1/payments", tags=["Payments"])
+    app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
+except Exception as e:
+    logger.error(f"Failed to include routers: {e}")
+    # Continue without routers if they fail to import
+
+# --- Health Check & Root Endpoint ---
+
+
+@app.get("/health", tags=["System"])
+async def health_check():
+    """
+    Performs a health check on the API and its dependencies.
+    Returns basic health status without exposing sensitive configuration details.
+    """
+
+    db_status = "unhealthy"
+    redis_status = "unhealthy"
+    s3_status = "unhealthy"
+
+    try:
+        if SessionLocal:
+            db = SessionLocal()
+            try:
+                db.execute(text("SELECT 1"))
+                db_status = "healthy"
+            finally:
+                db.close()
+        else:
+            db_status = "not_configured"
+    except Exception as e:
+        logger.warning(f"Database health check failed: {e}")
+        db_status = "unhealthy"
+
+    redis_url = settings.REDIS_URL
+    try:
+        logger.info(f"Attempting Redis connection to: {redis_url}")
+        redis_client = redis.from_url(redis_url)
+        result = redis_client.ping()
+        logger.info(f"Redis ping result: {result}")
+        redis_status = "healthy"
+    except Exception as e:
+        logger.error(f"Redis health check failed: {e} - URL: {redis_url}")
+        redis_status = "unhealthy"
+
+    # Security: Only test S3 connectivity if credentials are configured
+    logger.info(
+        f"S3 check: AWS_ACCESS_KEY_ID='{settings.AWS_ACCESS_KEY_ID}', AWS_SECRET_ACCESS_KEY='{'***' if settings.AWS_SECRET_ACCESS_KEY else None}', S3_BUCKET_NAME='{settings.S3_BUCKET_NAME}', AWS_REGION='{settings.AWS_REGION}'"
+    )
+    aws_key_set = bool(settings.AWS_ACCESS_KEY_ID)
+    aws_secret_set = bool(settings.AWS_SECRET_ACCESS_KEY)
+    bucket_set = bool(settings.S3_BUCKET_NAME)
+    logger.info(
+        f"S3 check booleans: key={aws_key_set}, secret={aws_secret_set}, bucket={bucket_set}"
+    )
+    if aws_key_set and aws_secret_set and bucket_set:
+        logger.info(
+            f"S3 credentials configured, testing connection - Bucket: {settings.S3_BUCKET_NAME}, Region: {settings.AWS_REGION}"
+        )
+        try:
+            s3_client = boto3.client(
+                "s3",
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_REGION,
+            )
+            logger.info("S3 client created successfully")
+            # Try head_bucket to check if bucket exists and is accessible
+            try:
+                logger.info(f"Attempting head_bucket on {settings.S3_BUCKET_NAME}")
+                result = s3_client.head_bucket(Bucket=settings.S3_BUCKET_NAME)
+                logger.info(
+                    f"S3 head_bucket successful for bucket: {settings.S3_BUCKET_NAME}"
+                )
+                s3_status = "healthy"
+            except Exception as head_error:
+                error_str = str(head_error)
+                if "404" in error_str or "Not Found" in error_str:
+                    logger.error(
+                        f"S3 bucket '{settings.S3_BUCKET_NAME}' does not exist in region '{settings.AWS_REGION}'"
+                    )
+                    s3_status = "unhealthy"
+                elif "AccessDenied" in error_str or "Forbidden" in error_str:
+                    logger.error(
+                        f"S3 access denied to bucket '{settings.S3_BUCKET_NAME}' - check IAM permissions"
+                    )
+                    s3_status = "unhealthy"
+                else:
+                    logger.warning(
+                        f"S3 head_bucket failed with unexpected error: {head_error}, trying get_bucket_location"
+                    )
+                    try:
+                        # Fallback: try to get bucket location to verify credentials work
+                        logger.info("Attempting get_bucket_location")
+                        location = s3_client.get_bucket_location(
+                            Bucket=settings.S3_BUCKET_NAME
+                        )
+                        logger.info(
+                            f"S3 credentials work, bucket exists in region: {location.get('LocationConstraint', 'us-east-1')}"
+                        )
+                        s3_status = "healthy"
+                    except Exception as location_error:
+                        logger.error(
+                            f"S3 get_bucket_location also failed: {location_error}"
+                        )
+                        s3_status = "unhealthy"
+        except Exception as e:
+            logger.error(
+                f"S3 client creation/health check failed: {e} - Bucket: {settings.S3_BUCKET_NAME}, Region: {settings.AWS_REGION}"
+            )
+            s3_status = "unhealthy"
+    else:
+        logger.info("S3 credentials not fully configured")
+        s3_status = "not_configured"
+
+    # Determine overall status
+    all_healthy = all(
+        status in ["healthy", "not_configured"]
+        for status in [db_status, redis_status, s3_status]
+    )
+    overall_status = "healthy" if all_healthy else "unhealthy"
+
+    return {
+        "status": overall_status,
+        "timestamp": time.time(),
+        "dependencies": {
+            "database": db_status,
+            "redis": redis_status,
+            "s3": s3_status,
+        },
+    }
+
+
+@app.get("/", tags=["System"])
+def read_root():
+    return {"message": "Welcome to the PDF2AudioBook API"}
