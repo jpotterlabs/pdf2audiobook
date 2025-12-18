@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export', // Enable static export for Render Static Site
   // Enable experimental features if needed
   experimental: {
     // Enable if using app directory features
@@ -8,7 +9,7 @@ const nextConfig = {
   // Image optimization settings
   images: {
     domains: ['localhost'], // Add your production domain here
-    unoptimized: process.env.NODE_ENV === 'development', // Disable optimization in dev for faster builds
+    unoptimized: true, // Required for static export
   },
 
   // Headers for security
