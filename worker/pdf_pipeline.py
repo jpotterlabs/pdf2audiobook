@@ -294,7 +294,7 @@ class PDFToAudioPipeline:
                     api_key=openrouter_key,
                     base_url="https://openrouter.ai/api/v1",
                 )
-                model = os.getenv("LLM_MODEL", "google/gemini-2.0-flash-001")
+                model = settings.LLM_MODEL
             else:
                 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
                 model = "gpt-3.5-turbo"
@@ -329,7 +329,7 @@ class PDFToAudioPipeline:
                     api_key=openrouter_key,
                     base_url="https://openrouter.ai/api/v1",
                 )
-                model = os.getenv("LLM_MODEL", "google/gemini-2.0-flash-001")
+                model = settings.LLM_MODEL
             else:
                 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
                 model = "gpt-4"
