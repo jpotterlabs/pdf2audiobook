@@ -1,5 +1,6 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
-from typing import List, Optional
+from typing import List, Optional, Any
 import os
 
 
@@ -64,6 +65,14 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
+
+    @field_validator("ALLOWED_HOSTS", "ALLOWED_FILE_TYPES", mode="before")
+    @classmethod
+    def parse_env_list(cls, v: Any) -> List[str]:
+        """Parse comma-separated strings from environment variables into lists."""
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",") if i.strip()]
+        return v
 
     class Config:
         env_file = ".env"
