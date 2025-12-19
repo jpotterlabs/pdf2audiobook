@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     # OpenAI
     OPENAI_API_KEY: Optional[str] = None
 
+    # OpenRouter
+    OPENROUTER_API_KEY: Optional[str] = None
+    LLM_MODEL: str = "google/gemini-2.0-flash-001"
+
     # File upload limits
     MAX_FILE_SIZE_MB: int = 50
     ALLOWED_FILE_TYPES: List[str] = ["application/pdf"]

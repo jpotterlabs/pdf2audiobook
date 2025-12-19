@@ -287,12 +287,23 @@ class PDFToAudioPipeline:
 
     def _generate_summary(self, text: str) -> str:
         try:
-            client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            # Use OpenRouter if available, otherwise fallback to OpenAI
+            openrouter_key = os.getenv("OPENROUTER_API_KEY")
+            if openrouter_key:
+                client = openai.OpenAI(
+                    api_key=openrouter_key,
+                    base_url="https://openrouter.ai/api/v1",
+                )
+                model = os.getenv("LLM_MODEL", "google/gemini-2.0-flash-001")
+            else:
+                client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+                model = "gpt-3.5-turbo"
+
             max_length = 12000
             truncated_text = text[:max_length] if len(text) > max_length else text
 
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=model,
                 messages=[
                     {
                         "role": "system",
@@ -304,18 +315,30 @@ class PDFToAudioPipeline:
                 temperature=0.3,
             )
             return response.choices[0].message.content.strip()
-        except Exception:
+        except Exception as e:
+            print(f"Summary generation error: {e}")
             return text[:500] + "..."
 
     def _generate_concept_explanation(self, text: str) -> str:
         """Generate a comprehensive explanation of core concepts from the text."""
         try:
-            client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            # Use OpenRouter if available, otherwise fallback to OpenAI
+            openrouter_key = os.getenv("OPENROUTER_API_KEY")
+            if openrouter_key:
+                client = openai.OpenAI(
+                    api_key=openrouter_key,
+                    base_url="https://openrouter.ai/api/v1",
+                )
+                model = os.getenv("LLM_MODEL", "google/gemini-2.0-flash-001")
+            else:
+                client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+                model = "gpt-4"
+
             max_length = 10000  # Larger context for concept extraction
             truncated_text = text[:max_length] if len(text) > max_length else text
 
             response = client.chat.completions.create(
-                model="gpt-4",  # Use GPT-4 for better concept analysis
+                model=model,
                 messages=[
                     {
                         "role": "system",
@@ -331,6 +354,7 @@ class PDFToAudioPipeline:
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
+            print(f"Concept explanation error: {e}")
             # Fallback: generate a basic summary-style explanation
             return f"This document explores key concepts and ideas. {text[:1000]}... The main themes and conclusions are presented in a structured format suitable for understanding the core content."
 
