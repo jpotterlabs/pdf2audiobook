@@ -50,7 +50,7 @@ class UserService:
         if not user:
             raise ValueError("User not found")
         
-        for field, value in user_update.dict(exclude_unset=True).items():
+        for field, value in user_update.model_dump(exclude_unset=True).items():
             setattr(user, field, value)
         
         self.db.commit()

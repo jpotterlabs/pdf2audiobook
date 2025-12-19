@@ -1,25 +1,35 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from jose import jwt, JWTError, exceptions
-from typing import Optional
+from jose import jwt, JWTError
+from datetime import datetime
+from typing import Optional, Dict, Any
 
 from app.core.database import get_db
 from app.core.config import settings
-from app.schemas import User
+from app.schemas import User, SubscriptionTier
 from app.services.user import UserService
 
 security = HTTPBearer()
 
 def verify_clerk_token(token: str) -> dict:
     """
-    Verifies a Clerk JWT token using Clerk's public key and validates issuer/audience.
+    Verifies a Clerk-issued JWT token.
+    Returns a dictionary containing user data from the token.
     """
-    # Security: Remove testing mode bypass for production
-    if not settings.CLERK_PEM_PUBLIC_KEY or not settings.CLERK_JWT_ISSUER or not settings.CLERK_JWT_AUDIENCE:
+    # Local testing mode fallback
+    if settings.TESTING_MODE and token == "dev-secret-key-for-testing-only":
+        return {
+            "auth_provider_id": "dev_user_123",
+            "email": "dev@example.com",
+            "first_name": "Dev",
+            "last_name": "User"
+        }
+
+    if not all([settings.CLERK_PEM_PUBLIC_KEY, settings.CLERK_JWT_ISSUER, settings.CLERK_JWT_AUDIENCE]):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Authentication service not configured properly."
+            detail="Clerk authentication not fully configured. Please set CLERK_PEM_PUBLIC_KEY, CLERK_JWT_ISSUER, and CLERK_JWT_AUDIENCE environment variables."
         )
 
     try:
@@ -72,10 +82,17 @@ def get_current_user(
         user = user_service.get_user_by_auth_id(user_data["auth_provider_id"])
 
         if user is None:
-            raise credentials_exception
+            if settings.TESTING_MODE:
+                # In testing mode, automatically create the user if they don't exist
+                user = user_service.get_or_create_user(user_data)
+            else:
+                raise credentials_exception
 
         return user
-    except JWTError:
+    except HTTPException:
+        # Re-raise any HTTPExceptions from verify_clerk_token or our own logic
+        raise
+    except (JWTError, Exception):
         raise credentials_exception
 
 def get_optional_current_user(

@@ -3,6 +3,7 @@ name = "pdf2audiobook"
 version = "0.1.0"
 description = "PDF to Audiobook SaaS Platform"
 authors = [{name = "cdarwin7", email = "contact@example.com"}]
+requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.104.1",
     "uvicorn[standard]>=0.24.0",

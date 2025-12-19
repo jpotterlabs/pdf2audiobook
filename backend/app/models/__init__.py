@@ -23,27 +23,28 @@ Base = declarative_base()
 def create_enum_type(name, values, metadata):
     """Create ENUM type safely for production environments"""
     if os.getenv("ENVIRONMENT") == "production":
-        # In production, assume ENUM types already exist (created via migrations)
-        return Enum(name, create_type=False)
+        # In production, we still use create_type=True because migrations are idempotent (DROP TYPE IF EXISTS)
+        # and this ensures the app can start even if migrations are slightly out of sync.
+        return Enum(values, name=name, create_type=True)
     else:
         # In development, create ENUM types automatically
-        return Enum(name, values, create_type=True)
+        return Enum(values, name=name, create_type=True)
 
 
-class SubscriptionTier(enum.Enum):
+class SubscriptionTier(str, enum.Enum):
     FREE = "free"
     PRO = "pro"
     ENTERPRISE = "enterprise"
 
 
-class JobStatus(enum.Enum):
+class JobStatus(str, enum.Enum):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
 
 
-class VoiceProvider(enum.Enum):
+class VoiceProvider(str, enum.Enum):
     OPENAI = "openai"
     GOOGLE = "google"
     AWS_POLLY = "aws_polly"
@@ -51,12 +52,12 @@ class VoiceProvider(enum.Enum):
     ELEVEN_LABS = "eleven_labs"
 
 
-class ProductType(enum.Enum):
+class ProductType(str, enum.Enum):
     SUBSCRIPTION = "subscription"
     ONE_TIME = "one_time"
 
 
-class ConversionMode(enum.Enum):
+class ConversionMode(str, enum.Enum):
     FULL = "full"
     SUMMARY_EXPLANATION = "summary_explanation"
 
@@ -102,7 +103,10 @@ class Job(Base):
     audio_s3_url = Column(String(1000))
 
     # Processing info
-    status = Column(Enum(JobStatus), default=JobStatus.PENDING)
+    status = Column(
+        create_enum_type("jobstatus", JobStatus, Base.metadata),
+        default=JobStatus.PENDING,
+    )
     progress_percentage = Column(Integer, default=0)
     error_message = Column(Text)
 
@@ -135,7 +139,6 @@ class Product(Base):
     paddle_product_id = Column(String(255), unique=True, nullable=False)
     name = Column(String(255), nullable=False)
     description = Column(Text)
-    type = Column(Enum(ProductType), nullable=False)
 
     # Pricing
     price = Column(Numeric(10, 2))
@@ -143,7 +146,9 @@ class Product(Base):
 
     # Credits/Tier info
     credits_included = Column(Integer)
-    subscription_tier = Column(Enum(SubscriptionTier))
+    subscription_tier = Column(
+        create_enum_type("subscriptiontier", SubscriptionTier, Base.metadata)
+    )
 
     # Status
     is_active = Column(Boolean, default=True)

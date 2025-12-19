@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
@@ -52,13 +52,13 @@ class UserBase(BaseModel):
     """Base schema for user properties."""
 
     email: EmailStr = Field(
-        ..., example="user@example.com", description="User's unique email address."
+        ..., json_schema_extra={"example": "user@example.com"}, description="User's unique email address."
     )
     first_name: Optional[str] = Field(
-        None, example="John", description="User's first name."
+        None, json_schema_extra={"example": "John"}, description="User's first name."
     )
     last_name: Optional[str] = Field(
-        None, example="Doe", description="User's last name."
+        None, json_schema_extra={"example": "Doe"}, description="User's last name."
     )
 
 
@@ -67,7 +67,7 @@ class UserCreate(UserBase):
 
     auth_provider_id: str = Field(
         ...,
-        example="clerk_123xyz",
+        json_schema_extra={"example": "clerk_123xyz"},
         description="Unique identifier from the authentication provider (e.g., Clerk).",
     )
 
@@ -76,10 +76,10 @@ class UserUpdate(BaseModel):
     """Schema for updating a user's profile information."""
 
     first_name: Optional[str] = Field(
-        None, example="John", description="User's updated first name."
+        None, json_schema_extra={"example": "John"}, description="User's updated first name."
     )
     last_name: Optional[str] = Field(
-        None, example="Doe", description="User's updated last name."
+        None, json_schema_extra={"example": "Doe"}, description="User's updated last name."
     )
 
 
@@ -87,27 +87,27 @@ class User(UserBase):
     """Schema for representing a user, returned from the API."""
 
     id: int = Field(
-        ..., example=1, description="Internal unique identifier for the user."
+        ..., json_schema_extra={"example": 1}, description="Internal unique identifier for the user."
     )
     auth_provider_id: str = Field(
         ...,
-        example="clerk_123xyz",
+        json_schema_extra={"example": "clerk_123xyz"},
         description="Unique identifier from the authentication provider.",
     )
     subscription_tier: SubscriptionTier = Field(
         ...,
-        example=SubscriptionTier.PRO,
+        json_schema_extra={"example": SubscriptionTier.PRO},
         description="User's current subscription tier.",
     )
     paddle_customer_id: Optional[str] = Field(
-        None, example="ctm_123abc", description="User's customer ID from Paddle."
+        None, json_schema_extra={"example": "ctm_123abc"}, description="User's customer ID from Paddle."
     )
     one_time_credits: int = Field(
-        ..., example=10, description="Number of one-time credits the user has."
+        ..., json_schema_extra={"example": 10}, description="Number of one-time credits the user has."
     )
     monthly_credits_used: int = Field(
         ...,
-        example=5,
+        json_schema_extra={"example": 5},
         description="Number of monthly subscription credits used in the current billing cycle.",
     )
     created_at: datetime = Field(
@@ -117,8 +117,7 @@ class User(UserBase):
         None, description="Timestamp when the user was last updated."
     )
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- Job Schemas ---
@@ -129,7 +128,7 @@ class JobBase(BaseModel):
 
     original_filename: str = Field(
         ...,
-        example="my_document.pdf",
+        json_schema_extra={"example": "my_document.pdf"},
         description="The original filename of the uploaded PDF.",
     )
     voice_provider: VoiceProvider = Field(
@@ -138,7 +137,7 @@ class JobBase(BaseModel):
     )
     voice_type: str = Field(
         "default",
-        example="alloy",
+        json_schema_extra={"example": "alloy"},
         description="The specific voice to use from the selected provider.",
     )
     reading_speed: float = Field(
@@ -185,36 +184,36 @@ class Job(JobBase):
     """Schema for representing a job, returned from the API."""
 
     id: int = Field(
-        ..., example=42, description="Internal unique identifier for the job."
+        ..., json_schema_extra={"example": 42}, description="Internal unique identifier for the job."
     )
     user_id: int = Field(
-        ..., example=1, description="The ID of the user who created the job."
+        ..., json_schema_extra={"example": 1}, description="The ID of the user who created the job."
     )
     pdf_s3_key: str = Field(
         ...,
-        example="pdfs/1/my_document.pdf",
+        json_schema_extra={"example": "pdfs/1/my_document.pdf"},
         description="The S3 key for the stored PDF file.",
     )
     audio_s3_key: Optional[str] = Field(
         None,
-        example="audio/1/42.mp3",
+        json_schema_extra={"example": "audio/1/42.mp3"},
         description="The S3 key for the generated audio file.",
     )
     pdf_s3_url: Optional[str] = Field(
         None,
-        example="https://bucket.s3.amazonaws.com/pdfs/1/my_document.pdf",
+        json_schema_extra={"example": "https://bucket.s3.amazonaws.com/pdfs/1/my_document.pdf"},
         description="The public URL for the PDF file.",
     )
     audio_s3_url: Optional[str] = Field(
         None,
-        example="https://bucket.s3.amazonaws.com/audio/1/42.mp3",
+        json_schema_extra={"example": "https://bucket.s3.amazonaws.com/audio/1/42.mp3"},
         description="The public URL for the generated audio file.",
     )
     status: JobStatus = Field(
-        ..., example=JobStatus.COMPLETED, description="The current status of the job."
+        ..., json_schema_extra={"example": JobStatus.COMPLETED}, description="The current status of the job."
     )
     progress_percentage: int = Field(
-        ..., example=100, ge=0, le=100, description="The processing progress (0-100)."
+        ..., json_schema_extra={"example": 100}, ge=0, le=100, description="The processing progress (0-100)."
     )
     error_message: Optional[str] = Field(
         None, description="An error message if the job failed."
@@ -227,8 +226,7 @@ class Job(JobBase):
         None, description="Timestamp when processing was completed."
     )
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- Auth Schemas ---
@@ -239,7 +237,7 @@ class Token(BaseModel):
 
     access_token: str = Field(
         ...,
-        example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        json_schema_extra={"example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
         description="A JWT access token.",
     )
     token_type: str = Field("bearer", description="The type of the token.")

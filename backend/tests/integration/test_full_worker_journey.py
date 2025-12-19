@@ -19,7 +19,9 @@ from worker.tasks import process_pdf_task
 @patch("app.api.v1.jobs.get_current_user")
 @patch("app.api.v1.jobs.JobService")
 @patch("app.api.v1.jobs.StorageService")
+@patch("app.api.v1.jobs.process_pdf_task")
 async def test_full_pdf_to_audiobook_journey(
+    mock_api_process_task,
     MockStorageServiceAPI,
     MockJobServiceAPI,
     mock_get_current_user,
@@ -188,7 +190,9 @@ async def test_full_pdf_to_audiobook_journey(
 @patch("app.api.v1.jobs.get_current_user")
 @patch("app.api.v1.jobs.JobService")
 @patch("app.api.v1.jobs.StorageService")
+@patch("app.api.v1.jobs.process_pdf_task")
 async def test_pdf_processing_with_summary_explanation_mode(
+    mock_api_process_task,
     MockStorageServiceAPI,
     MockJobServiceAPI,
     mock_get_current_user,

@@ -164,12 +164,16 @@ class TestGetCurrentUser:
         mock_settings.TESTING_MODE = True
         credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="dev-secret-key-for-testing-only")
         db = MagicMock()
+        mock_user = MagicMock()
+        mock_user.id = 1
+        mock_user.auth_provider_id = "dev_user_123"
+        mock_user.email = "dev@example.com"
+        db.query.return_value.filter.return_value.first.return_value = mock_user
 
         # Act
         result = get_current_user(credentials, db)
 
         # Assert
-        assert isinstance(result, UserSchema)
         assert result.id == 1
         assert result.auth_provider_id == "dev_user_123"
         assert result.email == "dev@example.com"

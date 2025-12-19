@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -50,11 +50,13 @@ async def update_current_user(
     summary="Verify Token and Get User",
     description="Verifies a JWT token from the auth provider (Clerk), then finds or creates a user in the local database. This endpoint is typically called after a successful login on the frontend.",
 )
-async def verify_token(token: str, db: Session = Depends(get_db)):
+async def verify_token(
+    token: str = Body(..., embed=True), db: Session = Depends(get_db)
+):
     """
     Verifies a token and returns the corresponding user profile.
 
-    - **token**: The JWT token provided by the frontend after authentication.
+    - **token**: The JWT token provided by the frontend after authentication (sent in JSON body).
     """
     try:
         user_data = verify_clerk_token(token)

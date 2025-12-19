@@ -13,6 +13,10 @@ export default function UploadPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [jobResponse, setJobResponse] = useState<Job | null>(null)
+  const [voiceProvider, setVoiceProvider] = useState('openai')
+  const [voiceType, setVoiceType] = useState('alloy')
+  const [readingSpeed, setReadingSpeed] = useState(1.0)
+  const [includeSummary, setIncludeSummary] = useState(true)
   const { getToken } = useAuth()
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -43,10 +47,11 @@ export default function UploadPage() {
 
       const formData = new FormData()
       formData.append('file', selectedFile)
-      formData.append('voice_provider', 'openai')
-      formData.append('voice_type', 'alloy')
-      formData.append('reading_speed', '1.0')
-      formData.append('include_summary', 'true')
+      formData.append('voice_provider', voiceProvider)
+      formData.append('voice_type', voiceType)
+      formData.append('reading_speed', readingSpeed.toString())
+      formData.append('include_summary', includeSummary.toString())
+      formData.append('conversion_mode', 'full')
 
       // Simulate progress
       const progressInterval = setInterval(() => {
@@ -103,13 +108,12 @@ export default function UploadPage() {
         {/* Upload Area */}
         <div
           {...getRootProps()}
-          className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-            isDragActive
-              ? 'border-blue-400 bg-blue-50'
-              : selectedFile
-                ? 'border-green-400 bg-green-50'
-                : 'border-gray-300 hover:border-gray-400'
-          }`}
+          className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${isDragActive
+            ? 'border-blue-400 bg-blue-50'
+            : selectedFile
+              ? 'border-green-400 bg-green-50'
+              : 'border-gray-300 hover:border-gray-400'
+            }`}
         >
           <input {...getInputProps()} />
 
@@ -170,6 +174,96 @@ export default function UploadPage() {
             </div>
           )}
         </div>
+
+        {/* Settings Section */}
+        {selectedFile && !isUploading && !jobResponse && (
+          <div className="mt-8 space-y-6 border-t pt-8">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Audiobook Settings
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Voice Provider */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Voice Provider
+                </label>
+                <select
+                  value={voiceProvider}
+                  onChange={(e) => setVoiceProvider(e.target.value)}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                >
+                  <option value="openai">OpenAI</option>
+                  <option value="google">Google Cloud</option>
+                  <option value="eleven_labs">ElevenLabs</option>
+                  <option value="azure">Azure Speech</option>
+                  <option value="aws_polly">AWS Polly</option>
+                </select>
+              </div>
+
+              {/* Voice Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Voice
+                </label>
+                {voiceProvider === 'openai' ? (
+                  <select
+                    value={voiceType}
+                    onChange={(e) => setVoiceType(e.target.value)}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                  >
+                    <option value="alloy">Alloy (Neutral)</option>
+                    <option value="echo">Echo (Male)</option>
+                    <option value="fable">Fable (British)</option>
+                    <option value="onyx">Onyx (Deep Male)</option>
+                    <option value="nova">Nova (Femme)</option>
+                    <option value="shimmer">Shimmer (Femme)</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={voiceType}
+                    onChange={(e) => setVoiceType(e.target.value)}
+                    placeholder="Enter voice ID or name"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                  />
+                )}
+              </div>
+
+              {/* Reading Speed */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reading Speed ({readingSpeed}x)
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  value={readingSpeed}
+                  onChange={(e) => setReadingSpeed(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+
+              {/* Include Summary */}
+              <div className="flex items-center">
+                <input
+                  id="include-summary"
+                  type="checkbox"
+                  checked={includeSummary}
+                  onChange={(e) => setIncludeSummary(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label
+                  htmlFor="include-summary"
+                  className="ml-2 block text-sm text-gray-900"
+                >
+                  Include AI-generated summary at the beginning
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Upload Button */}
         {selectedFile && !isUploading && !jobResponse && (

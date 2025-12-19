@@ -10,14 +10,14 @@ router = APIRouter()
 
 class CheckoutURLRequest(BaseModel):
     product_id: int = Field(
-        ..., example=1, description="The internal ID of the product to purchase."
+        ..., json_schema_extra={"example": 1}, description="The internal ID of the product to purchase."
     )
 
 
 class CheckoutURLResponse(BaseModel):
     checkout_url: str = Field(
         ...,
-        example="https://sandbox-vendors.paddle.com/checkout/user/123/hash?redirect_url=...",
+        json_schema_extra={"example": "https://sandbox-vendors.paddle.com/checkout/user/123/hash?redirect_url=..."},
         description="The generated Paddle checkout URL.",
     )
 
