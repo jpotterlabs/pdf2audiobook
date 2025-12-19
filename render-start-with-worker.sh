@@ -98,7 +98,7 @@ pidfile=/tmp/supervisord.pid
 loglevel=info
 
 [program:backend]
-command=${CMD_PREFIX}uvicorn backend.main:app --host 0.0.0.0 --port %(ENV_PORT)s --workers 1
+command=${CMD_PREFIX}uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-10000} --workers 1
 directory=/opt/render/project/src
 autostart=true
 autorestart=true
