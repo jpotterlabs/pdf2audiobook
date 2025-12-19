@@ -12,35 +12,6 @@ const nextConfig = {
     unoptimized: true, // Required for static export
   },
 
-  // Headers for security
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
-          },
-        ],
-      },
-    ]
-  },
-
-  // Redirects and rewrites if needed
-  async rewrites() {
-    return [
-      // Add any API rewrites if needed for local development
-    ]
-  },
 
   // Reduce dev-time memory usage by avoiding watching heavy root-level folders
   // and backend-related artifacts that are irrelevant to the Next.js app.

@@ -1,7 +1,7 @@
 import { SignIn } from '@clerk/nextjs'
 
 export function generateStaticParams() {
-  return []
+  return [{ 'sign-in': [] }]
 }
 
 export default function SignInPage() {
