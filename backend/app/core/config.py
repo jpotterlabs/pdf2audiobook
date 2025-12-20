@@ -183,6 +183,11 @@ class Settings(BaseSettings):
 
         json_text = self.GOOGLE_APPLICATION_CREDENTIALS_JSON
         if json_text and json_text.strip():
+             # Basic sanity check: If it doesn't start with '{', it's likely a path or junk
+             if not json_text.strip().startswith("{"):
+                 logger.warning(f"⚠️ GOOGLE_APPLICATION_CREDENTIALS_JSON exists but doesn't look like JSON (starts with '{json_text[:5]}...'). Skipping manual setup.")
+                 return
+                 
              logger.info(f"🛠 Manual setup trigger detected (JSON length: {len(json_text)})")
              cred_path = "/tmp/google_credentials.json"
              try:
