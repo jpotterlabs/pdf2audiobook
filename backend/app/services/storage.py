@@ -9,14 +9,23 @@ from app.core.config import settings
 
 class StorageService:
     def __init__(self):
+        from botocore.config import Config
+        from loguru import logger
+        
+        self.logger = logger
         self.s3_client = boto3.client(
             's3',
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             region_name=settings.AWS_REGION,
-            endpoint_url=settings.AWS_ENDPOINT_URL
+            endpoint_url=settings.AWS_ENDPOINT_URL,
+            config=Config(
+                signature_version='s3v4',
+                s3={'addressing_style': 'path'}
+            )
         )
         self.bucket_name = settings.S3_BUCKET_NAME
+        self.logger.info(f"StorageService initialized with endpoint: {settings.AWS_ENDPOINT_URL}")
     
     async def upload_file(self, file: UploadFile, key: str) -> str:
         """Upload a file to S3 and return its URL"""
@@ -99,6 +108,7 @@ class StorageService:
                 Params={'Bucket': self.bucket_name, 'Key': key},
                 ExpiresIn=expiration
             )
+            self.logger.debug(f"Generated presigned URL for key {key}: {url}")
             return url
             
         except ClientError as e:
