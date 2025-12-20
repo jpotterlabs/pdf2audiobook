@@ -73,13 +73,18 @@ export default function UploadPage() {
         setUploadProgress(0)
         setJobResponse(null)
       }, 3000)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload failed:', error)
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Upload failed. Please try again.'
-      )
+
+      let errorMessage = 'Upload failed. Please try again.'
+
+      if (error?.response?.status === 401) {
+        errorMessage = 'Your session has expired. Please sign out and sign in again to continue.'
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+      }
+
+      toast.error(errorMessage)
       setUploadProgress(0)
     } finally {
       setIsUploading(false)

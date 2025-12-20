@@ -36,6 +36,11 @@ class StorageService:
                 ))
             
             # Generate URL
+            if settings.AWS_ENDPOINT_URL:
+                # Use custom endpoint if provided (e.g. for R2)
+                # Note: This is an internal URL, but better than nothing
+                return f"{settings.AWS_ENDPOINT_URL.rstrip('/')}/{self.bucket_name}/{key}"
+            
             url = f"https://{self.bucket_name}.s3.{settings.AWS_REGION}.amazonaws.com/{key}"
             return url
             
@@ -54,6 +59,10 @@ class StorageService:
                 ContentType=content_type
             )
             
+            if settings.AWS_ENDPOINT_URL:
+                # Use custom endpoint if provided (e.g. for R2)
+                return f"{settings.AWS_ENDPOINT_URL.rstrip('/')}/{self.bucket_name}/{key}"
+                
             url = f"https://{self.bucket_name}.s3.{settings.AWS_REGION}.amazonaws.com/{key}"
             return url
             

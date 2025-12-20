@@ -135,7 +135,15 @@ async def get_user_jobs(
     - **limit**: Maximum number of jobs to return.
     """
     job_service = JobService(db)
-    return job_service.get_user_jobs(current_user.id, skip=skip, limit=limit)
+    jobs = job_service.get_user_jobs(current_user.id, skip=skip, limit=limit)
+    
+    # Generate presigned URLs for completed jobs
+    storage_service = StorageService()
+    for job in jobs:
+        if job.status == JobStatus.COMPLETED and job.audio_s3_key:
+            job.audio_s3_url = storage_service.generate_presigned_url(job.audio_s3_key)
+            
+    return jobs
 
 
 @router.get(
@@ -160,6 +168,12 @@ async def get_job(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
         )
+    
+    # Generate presigned URL if completed
+    if job.status == JobStatus.COMPLETED and job.audio_s3_key:
+        storage_service = StorageService()
+        job.audio_s3_url = storage_service.generate_presigned_url(job.audio_s3_key)
+        
     return job
 
 
@@ -215,10 +229,15 @@ async def get_job_status(
             status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
         )
 
+    audio_url = job.audio_s3_url
+    if job.status == JobStatus.COMPLETED and job.audio_s3_key:
+        storage_service = StorageService()
+        audio_url = storage_service.generate_presigned_url(job.audio_s3_key)
+
     return {
         "job_id": job.id,
         "status": job.status,
         "progress_percentage": job.progress_percentage,
         "error_message": job.error_message,
-        "audio_url": job.audio_s3_url if job.status.value == "completed" else None,
+        "audio_url": audio_url,
     }
