@@ -90,17 +90,17 @@ def get_current_user(
         user = user_service.get_user_by_auth_id(user_data["auth_provider_id"])
 
         if user is None:
-            if settings.TESTING_MODE:
-                # In testing mode, automatically create the user if they don't exist
-                user = user_service.get_or_create_user(user_data)
-            else:
-                raise credentials_exception
+            # Auto-create user if they don't exist but have a valid token
+            # This handles cases where the frontend hasn't explicitly called /verify
+            print(f"User not found in DB for auth_id: {user_data['auth_provider_id']}. Auto-creating...")
+            user = user_service.get_or_create_user(user_data)
 
         return user
     except HTTPException:
         # Re-raise any HTTPExceptions from verify_clerk_token or our own logic
         raise
-    except (JWTError, Exception):
+    except Exception as e:
+        print(f"Auth catch-all error: {str(e)}")
         raise credentials_exception
 
 def get_optional_current_user(
