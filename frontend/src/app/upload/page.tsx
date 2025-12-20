@@ -13,8 +13,8 @@ export default function UploadPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [jobResponse, setJobResponse] = useState<Job | null>(null)
-  const [voiceProvider, setVoiceProvider] = useState('openai')
-  const [voiceType, setVoiceType] = useState('alloy')
+  const [voiceProvider, setVoiceProvider] = useState('google')
+  const [voiceType, setVoiceType] = useState('us_female_std')
   const [readingSpeed, setReadingSpeed] = useState(1.0)
   const [includeSummary, setIncludeSummary] = useState(true)
   const [conversionMode, setConversionMode] = useState('full')
@@ -183,70 +183,29 @@ export default function UploadPage() {
               Audiobook Settings
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Voice Provider */}
-              <div>
+              {/* Voice Selection */}
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Voice Provider
+                  Select Voice
                 </label>
                 <select
-                  value={voiceProvider}
-                  onChange={(e) => setVoiceProvider(e.target.value)}
+                  value={voiceType}
+                  onChange={(e) => setVoiceType(e.target.value)}
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
                 >
-                  <option value="openai">OpenAI</option>
-                  <option value="google">Google Cloud</option>
-                  <option value="eleven_labs">ElevenLabs</option>
-                  <option value="azure">Azure Speech</option>
-                  <option value="aws_polly">AWS Polly</option>
+                  <optgroup label="Standard (Wavenet)">
+                    <option value="us_female_std">US Female (Standard)</option>
+                    <option value="us_male_std">US Male (Standard)</option>
+                    <option value="gb_female_std">UK Female (Standard)</option>
+                    <option value="gb_male_std">UK Male (Standard)</option>
+                  </optgroup>
+                  <optgroup label="Premium (Chirp/Studio)">
+                    <option value="us_female_premium">US Female (Premium)</option>
+                    <option value="us_male_premium">US Male (Premium)</option>
+                    <option value="gb_female_premium">UK Female (Premium)</option>
+                    <option value="gb_male_premium">UK Male (Premium)</option>
+                  </optgroup>
                 </select>
-              </div>
-
-              {/* Voice Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Voice
-                </label>
-                {voiceProvider === 'openai' ? (
-                  <select
-                    value={voiceType}
-                    onChange={(e) => setVoiceType(e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
-                  >
-                    <option value="alloy">Alloy (Neutral)</option>
-                    <option value="echo">Echo (Male)</option>
-                    <option value="fable">Fable (British)</option>
-                    <option value="onyx">Onyx (Deep Male)</option>
-                    <option value="nova">Nova (Femme)</option>
-                    <option value="shimmer">Shimmer (Femme)</option>
-                  </select>
-                ) : voiceProvider === 'google' ? (
-                  <select
-                    value={voiceType}
-                    onChange={(e) => setVoiceType(e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
-                  >
-                    <optgroup label="Standard (Wavenet)">
-                      <option value="us_female_std">US Female (Standard)</option>
-                      <option value="us_male_std">US Male (Standard)</option>
-                      <option value="gb_female_std">UK Female (Standard)</option>
-                      <option value="gb_male_std">UK Male (Standard)</option>
-                    </optgroup>
-                    <optgroup label="Premium (Chirp/Studio)">
-                      <option value="us_female_premium">US Female (Premium)</option>
-                      <option value="us_male_premium">US Male (Premium)</option>
-                      <option value="gb_female_premium">UK Female (Premium)</option>
-                      <option value="gb_male_premium">UK Male (Premium)</option>
-                    </optgroup>
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={voiceType}
-                    onChange={(e) => setVoiceType(e.target.value)}
-                    placeholder="Enter voice ID or name"
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
-                  />
-                )}
               </div>
 
               {/* Reading Speed */}
