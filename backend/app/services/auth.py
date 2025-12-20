@@ -35,6 +35,9 @@ def verify_clerk_token(token: str) -> dict:
     try:
         # Clerk uses RS256 algorithm and requires verification with its public key.
         # The issuer (iss) and audience (azp) claims are also validated.
+        header = jwt.get_unverified_header(token)
+        print(f"DEBUG: Token Header: kid={header.get('kid')}, alg={header.get('alg')}")
+        
         payload = jwt.decode(
             token,
             key=settings.CLERK_PEM_PUBLIC_KEY,
