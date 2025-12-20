@@ -65,9 +65,17 @@ def verify_clerk_token(token: str) -> dict:
         # Extract user information
         # 'sub' is the user ID in Clerk's JWT
         # 'email_addresses' is an array, take the first one if available
+        # Parse email - fallback to a generated one if missing (to satisfy DB NotNull constraint)
         email = None
-        if payload.get("email_addresses") and len(payload["email_addresses"]) > 0:
-            email = payload["email_addresses"][0].get("email_address")
+        if payload.get("email"):
+             email = payload.get("email")
+        elif payload.get("email_addresses") and len(payload["email_addresses"]) > 0:
+             email = payload["email_addresses"][0].get("email_address")
+        
+        if not email:
+            # Fallback for users signed up via methods that might not share email immediately
+            # or if using a strictly phone-based auth in the future.
+            email = f"{payload.get('sub')}@clerk.user"
 
         user_data = {
             "auth_provider_id": payload.get("sub"),
