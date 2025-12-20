@@ -30,29 +30,11 @@ echo "DATABASE_URL is set, proceeding with migrations..."
 echo "DATABASE_URL: ${DATABASE_URL:0:20}..."
 
 # Check if we need to run migrations
-echo "Checking if database tables already exist..."
-table_exists=$(PGPASSWORD=$DB_PASSWORD psql "$DATABASE_URL" -t -c "SELECT to_regclass('users');" 2>/dev/null | xargs)
-
-if [ "$table_exists" = "users" ]; then
-    echo "Database tables already exist, skipping migrations..."
-    echo "This is normal for subsequent deployments."
-else
-    echo "Running database migrations for first-time setup..."
-
-    # Clean up any existing ENUM types that might have been created from failed migrations
-    echo "Cleaning up any existing ENUM types from previous failed migrations..."
-    psql "$DATABASE_URL" << 'EOF' 2>/dev/null || true
-DROP TYPE IF EXISTS jobstatus CASCADE;
-DROP TYPE IF EXISTS subscriptiontier CASCADE;
-DROP TYPE IF EXISTS voiceprovider CASCADE;
-DROP TYPE IF EXISTS conversionmode CASCADE;
-DROP TYPE IF EXISTS producttype CASCADE;
-DROP TYPE IF EXISTS subscriptionstatus CASCADE;
-DROP TYPE IF EXISTS transactiontype CASCADE;
-EOF
-    echo "Cleanup completed"
-
     # Run migrations
+    echo "Running database migrations..."
+    # Clean up any existing ENUM types that might have been created from failed migrations if needed
+    # (Optional: keep if you suspect ENUM issues, otherwise safe to remove if handled by alembic)
+
     echo "Running: alembic upgrade head"
     alembic upgrade head
 
@@ -63,7 +45,6 @@ EOF
         echo "This is a critical error - the application cannot start without database tables"
         exit 1
     fi
-fi
 
 # Start the application
 echo "Starting FastAPI application..."
