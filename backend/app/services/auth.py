@@ -37,6 +37,10 @@ def verify_clerk_token(token: str) -> dict:
         # The issuer (iss) and audience (azp) claims are also validated.
         header = jwt.get_unverified_header(token)
         payload_unverified = jwt.get_unverified_claims(token)
+        print(f"DEBUG: Token Header (KID): {header.get('kid')}")
+        print(f"DEBUG: Token Payload (ISS): {payload_unverified.get('iss')}")
+        print(f"DEBUG: Token Payload (AUD): {payload_unverified.get('aud')}")
+        print(f"DEBUG: Token Payload (AZP): {payload_unverified.get('azp')}")
         print(f"DEBUG: Backend Settings - ISSUER: {settings.CLERK_JWT_ISSUER}, AUDIENCE: {settings.CLERK_JWT_AUDIENCE}")
         
         # If the token has no audience, or we want to allow azp matching, we might need to adjust options.
