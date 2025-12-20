@@ -100,10 +100,6 @@ fi
 
 echo "✅ Database ready"
 
-# Repair: Attempt to reset failed Job 1
-echo "🔧 Running Job 1 recovery check..."
-python3 backend/reset_job.py || echo "⚠️ Job recovery script failed, continuing startup..."
-
 # Install supervisor if not present
 if ! command -v supervisord &> /dev/null; then
     echo "📦 Installing supervisor..."
