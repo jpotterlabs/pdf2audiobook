@@ -343,6 +343,7 @@ class PDFToAudioPipeline:
         return text.strip()
 
     def _generate_summary(self, text: str) -> str:
+        try:
             system_prompt = "Summarize the following text in about 150 words."
             user_content = text[:12000] if len(text) > 12000 else text
             
@@ -359,6 +360,7 @@ class PDFToAudioPipeline:
 
     def _generate_concept_explanation(self, text: str) -> str:
         """Generate a comprehensive explanation of core concepts from the text."""
+        try:
             system_prompt = """Analyze the provided text and create a comprehensive explanation of its core concepts.
                 Focus on explaining key ideas, methodologies, findings, and conclusions in a narrative form suitable for audio conversion.
                 Make the explanation educational and accessible, as if teaching the concepts to someone new to the topic."""
