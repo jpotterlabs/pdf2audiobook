@@ -52,7 +52,7 @@ def process_pdf_task(self, job_id: int):
         if not job:
             raise ValueError(f"Job {job_id} not found")
 
-        job_service.update_job_status(job_id, JobStatus.PROCESSING, 0)
+        job_service.update_job_status(job_id, JobStatus.processing, 0)
 
         pdf_data = storage_service.download_file(job.pdf_s3_key)
 
@@ -68,7 +68,7 @@ def process_pdf_task(self, job_id: int):
             include_summary=job.include_summary,
             conversion_mode=job.conversion_mode.value,
             progress_callback=lambda progress: job_service.update_job_status(
-                job_id, JobStatus.PROCESSING, progress
+                job_id, JobStatus.processing, progress
             ),
         )
 
@@ -80,7 +80,7 @@ def process_pdf_task(self, job_id: int):
         job.audio_s3_key = audio_key
         job.audio_s3_url = audio_url
         job_service.update_job_status(
-            job_id, JobStatus.COMPLETED, 100, estimated_cost=estimated_cost
+            job_id, JobStatus.completed, 100, estimated_cost=estimated_cost
         )
 
         logger.info(f"Successfully processed job {job_id}")
@@ -88,13 +88,13 @@ def process_pdf_task(self, job_id: int):
 
     except ValueError as e:
         logger.warning(f"User error processing job {job_id}: {e}")
-        job_service.update_job_status(job_id, JobStatus.FAILED, error_message=str(e))
+        job_service.update_job_status(job_id, JobStatus.failed, error_message=str(e))
         # Do not retry for user errors
 
     except Exception as e:
         logger.error(f"System error processing job {job_id}: {e}", exc_info=True)
         job_service.update_job_status(
-            job_id, JobStatus.FAILED, error_message="An unexpected error occurred."
+            job_id, JobStatus.failed, error_message="An unexpected error occurred."
         )
         # Retry for system errors
         raise self.retry(exc=e, countdown=60, max_retries=3)
@@ -125,7 +125,7 @@ def cleanup_old_files():
 
         old_jobs = (
             db.query(Job)
-            .filter(Job.status == JobStatus.COMPLETED, Job.completed_at < cutoff_date)
+            .filter(Job.status == JobStatus.completed, Job.completed_at < cutoff_date)
             .all()
         )
 
