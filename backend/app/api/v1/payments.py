@@ -1,11 +1,29 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from typing import List, Optional
+from sqlalchemy.orm import Session
+from app.core.database import get_db
 
 from app.services.payment import PaymentService, PaddleCheckoutRequest
+from app.schemas import Job, Product, User
 from app.services.auth import get_current_user
-from app.models import User
+from app.models import User, Product as ProductModel
+from app.core.database import get_db
 
 router = APIRouter()
+
+
+@router.get(
+    "/products",
+    response_model=List[Product],
+    summary="List All Available Products",
+    description="Retrieves a list of all active products and subscription plans.",
+)
+async def get_products(db: Session = Depends(get_db)):
+    """
+    Fetches all active products available for purchase.
+    """
+    return db.query(ProductModel).filter(ProductModel.is_active == True).all()
 
 
 class CheckoutURLRequest(BaseModel):

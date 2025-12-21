@@ -41,10 +41,10 @@ class VoiceProvider(str, Enum):
 class ConversionMode(str, Enum):
     """Enumeration for PDF conversion modes."""
 
-    FULL = "full"
-    SUMMARY = "summary"
-    EXPLANATION = "explanation"
-    SUMMARY_EXPLANATION = "summary_explanation"
+    full = "full"
+    summary = "summary"
+    explanation = "explanation"
+    summary_explanation = "summary_explanation"
 
 
 # --- User Schemas ---
@@ -153,7 +153,7 @@ class JobBase(BaseModel):
         description="Whether to generate and include an AI summary at the beginning of the audiobook.",
     )
     conversion_mode: ConversionMode = Field(
-        ConversionMode.FULL,
+        ConversionMode.full,
         description="Conversion mode: full word-for-word conversion or summary explanation of core concepts.",
     )
 
@@ -254,3 +254,28 @@ class TokenData(BaseModel):
     user_id: Optional[int] = Field(
         None, description="The user ID associated with the token."
     )
+# --- Product Schemas ---
+
+
+class ProductBase(BaseModel):
+    """Base schema for product properties."""
+
+    name: str = Field(..., description="The name of the product.")
+    description: Optional[str] = Field(None, description="A detailed description of the product.")
+    price: float = Field(..., description="The price of the product.")
+    currency: str = Field("USD", description="The currency for the price.")
+    credits_included: int = Field(..., description="Number of credits or monthly job limit included.")
+    type: ProductType = Field(..., description="Product type: subscription or one-time.")
+    subscription_tier: Optional[SubscriptionTier] = Field(None, description="The associated tier for subscriptions.")
+
+
+class Product(ProductBase):
+    """Schema for representing a product, returned from the API."""
+
+    id: int = Field(..., description="Internal unique identifier for the product.")
+    paddle_product_id: str = Field(..., description="The product's ID within Paddle.")
+    is_active: bool = Field(True, description="Whether the product is currently available for purchase.")
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)

@@ -58,10 +58,10 @@ class ProductType(str, enum.Enum):
 
 
 class ConversionMode(str, enum.Enum):
-    FULL = "full"
-    SUMMARY = "summary"
-    EXPLANATION = "explanation"
-    SUMMARY_EXPLANATION = "summary_explanation"  # Deprecated soon but keeping for compatibility
+    full = "full"
+    summary = "summary"
+    explanation = "explanation"
+    summary_explanation = "summary_explanation"  # Deprecated soon but keeping for compatibility
 
 
 class User(Base):
