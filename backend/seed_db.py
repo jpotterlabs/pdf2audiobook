@@ -47,7 +47,23 @@ def run_db_fixes():
                 logger.info(f"Renaming {old} to {new} in producttype")
                 db.execute(text(f"ALTER TYPE producttype RENAME VALUE '{old}' TO '{new}'"))
 
-        # 4. Seed products
+        # 4. Normalize jobstatus
+        logger.info("Checking jobstatus enum...")
+        labels = get_enum_labels('jobstatus')
+        for old, new in [('PENDING', 'pending'), ('PROCESSING', 'processing'), ('COMPLETED', 'completed'), ('FAILED', 'failed')]:
+            if old in labels and new not in labels:
+                logger.info(f"Renaming {old} to {new} in jobstatus")
+                db.execute(text(f"ALTER TYPE jobstatus RENAME VALUE '{old}' TO '{new}'"))
+
+        # 5. Normalize voiceprovider
+        logger.info("Checking voiceprovider enum...")
+        labels = get_enum_labels('voiceprovider')
+        for old, new in [('OPENAI', 'openai'), ('GOOGLE', 'google'), ('AWS_POLLY', 'aws_polly'), ('AZURE', 'azure'), ('ELEVEN_LABS', 'eleven_labs')]:
+            if old in labels and new not in labels:
+                logger.info(f"Renaming {old} to {new} in voiceprovider")
+                db.execute(text(f"ALTER TYPE voiceprovider RENAME VALUE '{old}' TO '{new}'"))
+
+        # 6. Seed products
         logger.info("Seeding products...")
         products = [
             ('free_tier', 'Free Plan', 'Ideal for individuals starting their audiobook journey. 50 jobs per month included.', 0.00, 'USD', 50, 'free', 'subscription'),
