@@ -32,29 +32,29 @@ def create_enum_type(name, values, metadata):
 
 
 class SubscriptionTier(str, enum.Enum):
-    FREE = "free"
-    PRO = "pro"
-    ENTERPRISE = "enterprise"
+    free = "free"
+    pro = "pro"
+    enterprise = "enterprise"
 
 
 class JobStatus(str, enum.Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    pending = "pending"
+    processing = "processing"
+    completed = "completed"
+    failed = "failed"
 
 
 class VoiceProvider(str, enum.Enum):
-    OPENAI = "openai"
-    GOOGLE = "google"
-    AWS_POLLY = "aws_polly"
-    AZURE = "azure"
-    ELEVEN_LABS = "eleven_labs"
+    openai = "openai"
+    google = "google"
+    aws_polly = "aws_polly"
+    azure = "azure"
+    eleven_labs = "eleven_labs"
 
 
 class ProductType(str, enum.Enum):
-    SUBSCRIPTION = "subscription"
-    ONE_TIME = "one_time"
+    subscription = "subscription"
+    one_time = "one_time"
 
 
 class ConversionMode(str, enum.Enum):
@@ -76,7 +76,7 @@ class User(Base):
     # Subscription info
     subscription_tier = Column(
         create_enum_type("subscriptiontier", SubscriptionTier, Base.metadata),
-        default=SubscriptionTier.FREE,
+        default=SubscriptionTier.free,
     )
     paddle_customer_id = Column(String(255))
     one_time_credits = Column(Integer, default=0)
@@ -107,7 +107,7 @@ class Job(Base):
     # Processing info
     status = Column(
         create_enum_type("jobstatus", JobStatus, Base.metadata),
-        default=JobStatus.PENDING,
+        default=JobStatus.pending,
     )
     progress_percentage = Column(Integer, default=0)
     error_message = Column(Text)
@@ -115,7 +115,7 @@ class Job(Base):
     # Processing options
     voice_provider = Column(
         create_enum_type("voiceprovider", VoiceProvider, Base.metadata),
-        default=VoiceProvider.OPENAI,
+        default=VoiceProvider.openai,
     )
     voice_type = Column(String(50), default="default")
     reading_speed = Column(Numeric(3, 2), default=1.0)

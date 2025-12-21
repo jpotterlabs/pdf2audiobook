@@ -7,35 +7,35 @@ from enum import Enum
 class SubscriptionTier(str, Enum):
     """Enumeration for user subscription tiers."""
 
-    FREE = "free"
-    PRO = "pro"
-    ENTERPRISE = "enterprise"
+    free = "free"
+    pro = "pro"
+    enterprise = "enterprise"
 
 
 class JobStatus(str, Enum):
     """Enumeration for the status of a PDF processing job."""
 
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    pending = "pending"
+    processing = "processing"
+    completed = "completed"
+    failed = "failed"
 
 
 class ProductType(str, Enum):
     """Enumeration for product types (subscription or one-time purchase)."""
 
-    SUBSCRIPTION = "subscription"
-    ONE_TIME = "one_time"
+    subscription = "subscription"
+    one_time = "one_time"
 
 
 class VoiceProvider(str, Enum):
     """Enumeration for supported Text-to-Speech (TTS) providers."""
 
-    OPENAI = "openai"
-    GOOGLE = "google"
-    AWS_POLLY = "aws_polly"
-    AZURE = "azure"
-    ELEVEN_LABS = "eleven_labs"
+    openai = "openai"
+    google = "google"
+    aws_polly = "aws_polly"
+    azure = "azure"
+    eleven_labs = "eleven_labs"
 
 
 class ConversionMode(str, Enum):
