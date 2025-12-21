@@ -23,7 +23,7 @@ class JobService:
             reading_speed=job_data.reading_speed,
             include_summary=job_data.include_summary,
             conversion_mode=job_data.conversion_mode,
-            status=JobStatus.PENDING,
+            status=JobStatus.pending,
         )
 
         self.db.add(job)
@@ -86,9 +86,9 @@ class JobService:
         if estimated_cost is not None:
             job.estimated_cost = estimated_cost
 
-        if status == JobStatus.PROCESSING and not job.started_at:
+        if status == JobStatus.processing and not job.started_at:
             job.started_at = datetime.now()
-        elif status == JobStatus.COMPLETED:
+        elif status == JobStatus.completed:
             job.completed_at = datetime.now()
             job.progress_percentage = 100
 

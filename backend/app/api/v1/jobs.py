@@ -26,7 +26,7 @@ router = APIRouter()
 async def create_job(
     file: UploadFile = File(..., description="The PDF file to be converted."),
     voice_provider: VoiceProvider = Form(
-        VoiceProvider.OPENAI,
+        VoiceProvider.openai,
         description="The TTS provider to use. See schema for available providers.",
     ),
     voice_type: str = Form(
@@ -140,7 +140,7 @@ async def get_user_jobs(
     # Generate presigned URLs for completed jobs
     storage_service = StorageService()
     for job in jobs:
-        if job.status == JobStatus.COMPLETED and job.audio_s3_key:
+        if job.status == JobStatus.completed and job.audio_s3_key:
             job.audio_s3_url = storage_service.generate_presigned_url(job.audio_s3_key)
             
     return jobs
@@ -170,7 +170,7 @@ async def get_job(
         )
     
     # Generate presigned URL if completed
-    if job.status == JobStatus.COMPLETED and job.audio_s3_key:
+    if job.status == JobStatus.completed and job.audio_s3_key:
         storage_service = StorageService()
         job.audio_s3_url = storage_service.generate_presigned_url(job.audio_s3_key)
         
@@ -230,7 +230,7 @@ async def get_job_status(
         )
 
     audio_url = job.audio_s3_url
-    if job.status == JobStatus.COMPLETED and job.audio_s3_key:
+    if job.status == JobStatus.completed and job.audio_s3_key:
         storage_service = StorageService()
         audio_url = storage_service.generate_presigned_url(job.audio_s3_key)
 
