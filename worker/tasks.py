@@ -62,11 +62,11 @@ def process_pdf_task(self, job_id: int):
 
         audio_data, estimated_cost = pipeline.process_pdf(
             pdf_path=pdf_path,
-            voice_provider=job.voice_provider.value,
+            voice_provider=job.voice_provider,
             voice_type=job.voice_type,
             reading_speed=float(job.reading_speed),
             include_summary=job.include_summary,
-            conversion_mode=job.conversion_mode.value,
+            conversion_mode=job.conversion_mode,
             progress_callback=lambda progress: job_service.update_job_status(
                 job_id, JobStatus.processing, progress
             ),

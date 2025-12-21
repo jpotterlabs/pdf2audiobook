@@ -223,7 +223,11 @@ function JobDetailContent() {
                     Mode:{' '}
                     {job.conversion_mode === 'summary_explanation'
                       ? 'AI summary & explanation'
-                      : 'Full text narration'}
+                      : job.conversion_mode === 'summary'
+                        ? 'AI summary'
+                        : job.conversion_mode === 'explanation'
+                          ? 'AI concept explanation'
+                          : 'Full text narration'}
                   </p>
                 </div>
               </div>

@@ -347,38 +347,47 @@ class PDFToAudioPipeline:
         return text.strip()
 
     def _generate_summary(self, text: str) -> str:
+        """Generate a concise summary of the text."""
+        from loguru import logger
         try:
             system_prompt = "Summarize the following text in about 150 words."
-            user_content = text[:12000] if len(text) > 12000 else text
+            user_content = text[:20000] if len(text) > 20000 else text # Flash has large context
             
-            return self._call_llm_with_retry(
+            summary = self._call_llm_with_retry(
                 system_prompt=system_prompt,
                 user_content=user_content,
-                max_tokens=500,
+                max_tokens=600,
                 temperature=0.3
             )
+            logger.info(f"✅ Summary generated: {len(summary)} chars")
+            return summary
         except Exception as e:
-            from loguru import logger
-            logger.warning(f"Summary generation error: {e}")
+            logger.warning(f"⚠️ Summary generation error: {e}")
+            if "api_key" in str(e).lower() or "401" in str(e):
+                logger.error("❌ CRITICAL: LLM API key is missing or invalid. Check your environment variables.")
             return text[:500] + "..."
 
     def _generate_concept_explanation(self, text: str) -> str:
         """Generate a comprehensive explanation of core concepts from the text."""
+        from loguru import logger
         try:
             system_prompt = """Analyze the provided text and create a comprehensive explanation of its core concepts.
                 Focus on explaining key ideas, methodologies, findings, and conclusions in a narrative form suitable for audio conversion.
                 Make the explanation educational and accessible, as if teaching the concepts to someone new to the topic."""
-            user_content = text[:10000] if len(text) > 10000 else text
+            user_content = text[:20000] if len(text) > 20000 else text
 
-            return self._call_llm_with_retry(
+            explanation = self._call_llm_with_retry(
                 system_prompt=system_prompt,
                 user_content=user_content,
-                max_tokens=3000,
+                max_tokens=4000,
                 temperature=0.2
             )
+            logger.info(f"✅ Concept explanation generated: {len(explanation)} chars")
+            return explanation
         except Exception as e:
-            from loguru import logger
-            logger.warning(f"Concept explanation error: {e}")
+            logger.warning(f"⚠️ Concept explanation error: {e}")
+            if "api_key" in str(e).lower() or "401" in str(e):
+                logger.error("❌ CRITICAL: LLM API key is missing or invalid. Check your environment variables.")
             # Fallback: generate a basic summary-style explanation
             return f"This document explores key concepts and ideas. {text[:1000]}... The main themes and conclusions are presented in a structured format suitable for understanding the core content."
 
@@ -387,16 +396,23 @@ class PDFToAudioPipeline:
         import time
         from loguru import logger
         
-        openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        openrouter_key = settings.OPENROUTER_API_KEY
+        openai_key = settings.OPENAI_API_KEY
+
         if openrouter_key:
+            logger.info(f"🔗 Using OpenRouter for LLM ({settings.LLM_MODEL})")
             client = openai.OpenAI(
                 api_key=openrouter_key,
                 base_url="https://openrouter.ai/api/v1",
             )
             model = settings.LLM_MODEL
-        else:
-            client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        elif openai_key:
+            logger.info("🔗 Using direct OpenAI for LLM (gpt-3.5-turbo)")
+            client = openai.OpenAI(api_key=openai_key)
             model = "gpt-3.5-turbo"
+        else:
+            logger.error("❌ No LLM API key found in settings (OPENROUTER_API_KEY or OPENAI_API_KEY)")
+            raise ValueError("No LLM API key configured. Summary/Explanation modes require an API key.")
 
         logger.info(f"🤖 Calling LLM ({model}) for {system_prompt[:50]}...")
         for i in range(max_retries):

@@ -238,7 +238,8 @@ export default function UploadPage() {
                   {[
                     { id: 'full', label: 'Word-for-Word', desc: 'Convert the entire document text' },
                     { id: 'summary', label: 'Summary Only', desc: 'Convert an AI-generated summary' },
-                    { id: 'explanation', label: 'Concept Explanation', desc: 'Explain core concepts in simple terms' }
+                    { id: 'explanation', label: 'Concept Explanation', desc: 'Explain core concepts in simple terms' },
+                    { id: 'summary_explanation', label: 'Summary & Explanation', desc: 'Both AI summary and concept explanation' }
                   ].map((mode) => (
                     <label key={mode.id} className={`flex-1 min-w-[200px] cursor-pointer border rounded-lg p-3 transition-all ${conversionMode === mode.id ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-gray-200 hover:border-gray-300'}`}>
                       <input

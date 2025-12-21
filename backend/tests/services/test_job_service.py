@@ -213,7 +213,7 @@ class TestJobService:
         mock_settings.TESTING_MODE = False
         user_id = 1
         mock_user = MagicMock()
-        mock_user.subscription_tier.value = "free"
+        mock_user.subscription_tier = "free"
         mock_user.one_time_credits = 0
         self.db.query.return_value.filter.return_value.first.return_value = mock_user
         # Mock count query for monthly jobs
@@ -232,7 +232,7 @@ class TestJobService:
         mock_settings.TESTING_MODE = False
         user_id = 1
         mock_user = MagicMock()
-        mock_user.subscription_tier.value = "free"
+        mock_user.subscription_tier = "free"
         mock_user.one_time_credits = 0
         self.db.query.return_value.filter.return_value.first.return_value = mock_user
         # Mock count query for monthly jobs - at limit
@@ -251,7 +251,7 @@ class TestJobService:
         mock_settings.TESTING_MODE = False
         user_id = 1
         mock_user = MagicMock()
-        mock_user.subscription_tier.value = "pro"
+        mock_user.subscription_tier = "pro"
         mock_user.one_time_credits = 0
         self.db.query.return_value.filter.return_value.first.return_value = mock_user
         # Mock count query for monthly jobs
@@ -270,7 +270,7 @@ class TestJobService:
         mock_settings.TESTING_MODE = False
         user_id = 1
         mock_user = MagicMock()
-        mock_user.subscription_tier.value = "enterprise"
+        mock_user.subscription_tier = "enterprise"
         mock_user.one_time_credits = 0
         self.db.query.return_value.filter.return_value.first.return_value = mock_user
 
@@ -287,7 +287,7 @@ class TestJobService:
         mock_settings.TESTING_MODE = False
         user_id = 1
         mock_user = MagicMock()
-        mock_user.subscription_tier.value = "free"
+        mock_user.subscription_tier = "free"
         mock_user.one_time_credits = 5
         self.db.query.return_value.filter.return_value.first.return_value = mock_user
 
