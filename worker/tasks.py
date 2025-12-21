@@ -45,6 +45,7 @@ def process_pdf_task(self, job_id: int):
     storage_service = StorageService()
     job_service = JobService(db)
     pdf_path = None
+    temp_dir = None
 
     try:
         logger.info(f"Starting PDF processing for job {job_id}")
@@ -54,13 +55,18 @@ def process_pdf_task(self, job_id: int):
 
         job_service.update_job_status(job_id, JobStatus.processing, 0)
 
+        # Create a temporary directory for this specific job
+        temp_dir = tempfile.TemporaryDirectory()
+        work_dir = temp_dir.name
+
         pdf_data = storage_service.download_file(job.pdf_s3_key)
-
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as pdf_file:
+        
+        pdf_path = os.path.join(work_dir, "input.pdf")
+        with open(pdf_path, "wb") as pdf_file:
             pdf_file.write(pdf_data)
-            pdf_path = pdf_file.name
 
-        audio_data, estimated_cost = pipeline.process_pdf(
+        # process_pdf now returns (file_path, cost) and uses work_dir
+        audio_file_path, estimated_cost = pipeline.process_pdf(
             pdf_path=pdf_path,
             voice_provider=job.voice_provider,
             voice_type=job.voice_type,
@@ -70,11 +76,14 @@ def process_pdf_task(self, job_id: int):
             progress_callback=lambda progress: job_service.update_job_status(
                 job_id, JobStatus.processing, progress
             ),
+            work_dir=work_dir
         )
 
         audio_key = f"audio/{job.user_id}/{job.id}.mp3"
-        audio_url = storage_service.upload_file_data(
-            audio_data, audio_key, "audio/mpeg"
+        
+        # Stream upload from disk
+        audio_url = storage_service.upload_large_file(
+            audio_file_path, audio_key, "audio/mpeg"
         )
 
         job.audio_s3_key = audio_key
@@ -94,14 +103,20 @@ def process_pdf_task(self, job_id: int):
     except Exception as e:
         logger.error(f"System error processing job {job_id}: {e}", exc_info=True)
         job_service.update_job_status(
-            job_id, JobStatus.failed, error_message="An unexpected error occurred."
+            job_id, JobStatus.failed, error_message=f"An unexpected error occurred: {str(e)}"
         )
         # Retry for system errors
         raise self.retry(exc=e, countdown=60, max_retries=3)
 
     finally:
-        if pdf_path and os.path.exists(pdf_path):
-            os.unlink(pdf_path)
+        # cleanup happens automatically when temp_dir object is garbage collected or explicitly cleaned
+        # but explicit cleanup is good practice
+        if temp_dir:
+            try:
+                temp_dir.cleanup()
+            except Exception as e:
+                logger.warning(f"Failed to cleanup temp dir: {e}")
+        
         db.close()
 
 

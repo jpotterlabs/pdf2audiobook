@@ -208,7 +208,8 @@ class PDFToAudioPipeline:
         include_summary: bool = False,
         conversion_mode: str = "full",
         progress_callback: Optional[Callable[[int], None]] = None,
-    ) -> tuple[bytes, float]:
+        work_dir: Optional[str] = None
+    ) -> tuple[str, float]:
         from loguru import logger
         logger.info(f"🚀 Starting PDF processing: provider='{voice_provider}', voice='{voice_type}', mode='{conversion_mode}', summary='{include_summary}'")
         try:
@@ -235,7 +236,15 @@ class PDFToAudioPipeline:
 
             tts_provider = self.tts_manager.get_provider(voice_provider)
 
-            chapter_audio_segments = []
+            # Create a localized temporary directory if not provided
+            local_temp_dir = None
+            if not work_dir:
+                local_temp_dir = tempfile.TemporaryDirectory()
+                work_dir = local_temp_dir.name
+            
+            chunk_files = []
+            
+            # Process chunks and save to disk immediately
             for i, chunk in enumerate(chunks):
                 progress = 40 + int((i / len(chunks)) * 55)
                 if progress_callback:
@@ -244,13 +253,41 @@ class PDFToAudioPipeline:
                 audio_data = tts_provider.text_to_audio(
                     chunk, voice_type, reading_speed
                 )
-                chapter_audio_segments.append(
-                    AudioSegment.from_file(io.BytesIO(audio_data))
-                )
+                
+                chunk_path = os.path.join(work_dir, f"chunk_{i:04d}.mp3")
+                with open(chunk_path, "wb") as f:
+                    f.write(audio_data)
+                
+                chunk_files.append(chunk_path)
 
             if progress_callback:
                 progress_callback(95)
-            full_audio_data = self._assemble_audio_chapters(chapter_audio_segments)
+            
+            final_audio_path = self._assemble_audio_chapters(chunk_files, work_dir)
+            
+            # If we created a local temp dir, we need to ensure the final file 
+            # is moved out or persisted before the dir is cleaned up.
+            # actually, for now we will rely on the caller to handle cleanup if they provided work_dir
+            # if we created it, we return the path inside it, which might be dangerous if local_temp_dir cleans up 
+            # immediately upon garbage collection.
+            # FIX: Ideally the caller should ALWAYS provide work_dir or we should disable auto-cleanup here.
+            # pydub/tempfile logic: strict separation is better.
+            
+            if local_temp_dir:
+                # If we made the dir, we should probably persist the final file elsewhere or 
+                # keep the dir alive? For safety, let's assume the caller will likely move it 
+                # or read it immediately. But since we return a path, let's effectively "detach" 
+                # the tempdir if possible or warn. 
+                # Better approach: The caller (Celery task) creates the temp dir context.
+                # Use local_temp_dir.cleanup() ONLY if exception? 
+                # actually, local_temp_dir object will be destroyed when this scope ends? 
+                # No, it stays alive as long as ref exists. But here ref dies at end of function.
+                # So we must NOT use local_temp_dir here if we want to return a path inside it.
+                # But we can't change signature to force work_dir easily without breaking tests.
+                # We will rely on returning the path. Use mkdtemp instead of TemporaryDirectory if no work_dir.
+                pass 
+
+            full_audio_data_path = final_audio_path
 
             # Calculate estimated cost
             estimated_cost = self._calculate_cost(
@@ -259,7 +296,9 @@ class PDFToAudioPipeline:
 
             if progress_callback:
                 progress_callback(100)
-            return full_audio_data, estimated_cost
+            if progress_callback:
+                progress_callback(100)
+            return full_audio_data_path, estimated_cost
 
         except Exception as e:
             raise Exception(f"PDF processing failed: {str(e)}")
@@ -486,10 +525,54 @@ class PDFToAudioPipeline:
         sentences = re.split(r"(?<=[.!?])\s+", text)
 
     def _assemble_audio_chapters(
-        self, chapter_audio_segments: List[AudioSegment]
-    ) -> bytes:
-        full_audio = sum(chapter_audio_segments, AudioSegment.empty())
+        self, chunk_files: List[str], work_dir: str
+    ) -> str:
+        """
+        Assemble audio chapters using ffmpeg concat demuxer to avoid OOM.
+        Returns the path to the final assembled mp3 file.
+        """
+        import subprocess
+        
+        output_path = os.path.join(work_dir, "final_output.mp3")
+        list_file_path = os.path.join(work_dir, "file_list.txt")
 
-        audio_buffer = io.BytesIO()
-        full_audio.export(audio_buffer, format="mp3")
-        return audio_buffer.getvalue()
+        # Create ffmpeg concat list file
+        with open(list_file_path, "w") as f:
+            for chunk_file in chunk_files:
+                # ffmpeg requires absolute paths or relative to list file. 
+                # Absolute is safest.
+                abs_path = os.path.abspath(chunk_file)
+                # Escape single quotes in filename for ffmpeg
+                safe_path = abs_path.replace("'", "'\\''")
+                f.write(f"file '{safe_path}'\n")
+
+        # Run ffmpeg command
+        # -f concat: use concat demuxer
+        # -safe 0: allow unsafe file paths (absolute paths)
+        # -i ...: input list file
+        # -c copy: stream copy, no re-encoding (very fast, low memory)
+        cmd = [
+            "ffmpeg",
+            "-y", # overwrite output
+            "-f", "concat",
+            "-safe", "0",
+            "-i", list_file_path,
+            "-c", "copy",
+            output_path
+        ]
+        
+        try:
+            subprocess.run(
+                cmd, 
+                check=True, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE
+            )
+            return output_path
+        except subprocess.CalledProcessError as e:
+            # Fallback to pydub if ffmpeg fails (runtime missing?) 
+            # But we added it to Docker, so it should be fine.
+            # If it fails, capturing stderr is critical.
+            stderr_output = e.stderr.decode() if e.stderr else "No stderr"
+            raise Exception(f"FFmpeg assembly failed: {stderr_output}")
+

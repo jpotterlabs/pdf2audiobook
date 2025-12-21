@@ -57,6 +57,28 @@ class StorageService:
             raise Exception("AWS credentials not found")
         except ClientError as e:
             raise Exception(f"S3 upload failed: {str(e)}")
+
+    def upload_large_file(self, file_path: str, key: str, content_type: str = "audio/mpeg") -> str:
+        """Upload a large file from disk to S3 using multipart upload (automatic via upload_file)"""
+        try:
+            self.s3_client.upload_file(
+                Filename=file_path,
+                Bucket=self.bucket_name,
+                Key=key,
+                ExtraArgs={'ContentType': content_type}
+            )
+            
+            if settings.AWS_ENDPOINT_URL:
+                return f"{settings.AWS_ENDPOINT_URL.rstrip('/')}/{self.bucket_name}/{key}"
+                
+            return f"https://{self.bucket_name}.s3.{settings.AWS_REGION}.amazonaws.com/{key}"
+            
+        except NoCredentialsError:
+            raise Exception("AWS credentials not found")
+        except ClientError as e:
+            raise Exception(f"S3 upload failed: {str(e)}")
+        except Exception as e:
+            raise Exception(f"File upload failed: {str(e)}")
     
     def upload_file_data(self, file_data: bytes, key: str, content_type: str = "application/octet-stream") -> str:
         """Upload file data to S3 and return its URL"""
