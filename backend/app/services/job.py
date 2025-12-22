@@ -5,6 +5,10 @@ from datetime import datetime
 from app.models import Job, User, JobStatus
 from app.schemas import JobCreate, JobUpdate
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class JobService:
     def __init__(self, db: Session):
@@ -171,15 +175,15 @@ class JobService:
         if job.pdf_s3_key:
             try:
                 storage.delete_file(job.pdf_s3_key)
-            except Exception:
-                pass  # Log or ignore if file already missing
+            except Exception as e:
+                logger.warning(f"Could not delete PDF file {job.pdf_s3_key}: {e}")
 
         # Try to delete Audio
         if job.audio_s3_key:
             try:
                 storage.delete_file(job.audio_s3_key)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Could not delete audio file {job.audio_s3_key}: {e}")
 
         # Delete database record
         self.db.delete(job)
@@ -209,13 +213,13 @@ class JobService:
             if job.pdf_s3_key:
                 try:
                     storage.delete_file(job.pdf_s3_key)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Could not delete PDF {job.pdf_s3_key} for job {job.id}: {e}")
             if job.audio_s3_key:
                 try:
                     storage.delete_file(job.audio_s3_key)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Could not delete audio {job.audio_s3_key} for job {job.id}: {e}")
             
             self.db.delete(job)
             count += 1
