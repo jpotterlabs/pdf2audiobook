@@ -242,3 +242,48 @@ async def get_job_status(
         "audio_url": audio_url,
         "estimated_cost": job.estimated_cost,
     }
+
+
+@router.delete(
+    "/cleanup",
+    summary="Delete All Failed Jobs",
+    description="Permanently deletes all jobs with 'failed' or 'cancelled' status for the current user. Also removes associated files from storage.",
+)
+async def cleanup_failed_jobs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Cleans up all failed jobs for the user.
+    Returns the count of deleted jobs.
+    """
+    job_service = JobService(db)
+    count = job_service.cleanup_failed_jobs(current_user.id)
+    return {"message": f"Successfully cleaned up {count} failed/cancelled jobs", "deleted_count": count}
+
+
+@router.delete(
+    "/{job_id}",
+    summary="Delete a Job",
+    description="Permanently deletes a specific job and its associated files (PDF, Audio).",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_job(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Deletes a single job by ID.
+    """
+    job_service = JobService(db)
+    success = job_service.delete_job(current_user.id, job_id)
+    
+    if not success:
+        # We return 404 if job not found or not owned by user
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
+        )
+    
+    return None  # 204 No Content
+

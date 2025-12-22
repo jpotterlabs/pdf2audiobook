@@ -154,3 +154,74 @@ class JobService:
             return True
 
         return False
+        return False
+
+    def delete_job(self, user_id: int, job_id: int) -> bool:
+        """
+        Permanently delete a job and its associated S3 files.
+        """
+        job = self.get_user_job(user_id, job_id)
+        if not job:
+            return False
+
+        # Delete from S3
+        from app.services.storage import StorageService
+        storage = StorageService()
+        
+        # Try to delete PDF
+        if job.pdf_s3_key:
+            try:
+                storage.delete_file(job.pdf_s3_key)
+            except Exception:
+                pass  # Log or ignore if file already missing
+
+        # Try to delete Audio
+        if job.audio_s3_key:
+            try:
+                storage.delete_file(job.audio_s3_key)
+            except Exception:
+                pass
+
+        # Delete database record
+        self.db.delete(job)
+        self.db.commit()
+        return True
+
+    def cleanup_failed_jobs(self, user_id: int) -> int:
+        """
+        Delete all failed or cancelled jobs for a user.
+        Returns the number of jobs deleted.
+        """
+        failed_jobs = (
+            self.db.query(Job)
+            .filter(
+                Job.user_id == user_id,
+                Job.status.in_([JobStatus.failed, JobStatus.cancelled])
+            )
+            .all()
+        )
+
+        count = 0
+        from app.services.storage import StorageService
+        storage = StorageService()
+
+        for job in failed_jobs:
+            # S3 Cleanup
+            if job.pdf_s3_key:
+                try:
+                    storage.delete_file(job.pdf_s3_key)
+                except Exception:
+                    pass
+            if job.audio_s3_key:
+                try:
+                    storage.delete_file(job.audio_s3_key)
+                except Exception:
+                    pass
+            
+            self.db.delete(job)
+            count += 1
+        
+        if count > 0:
+            self.db.commit()
+            
+        return count
