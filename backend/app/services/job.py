@@ -5,6 +5,10 @@ from datetime import datetime
 from app.models import Job, User, JobStatus
 from app.schemas import JobCreate, JobUpdate
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class JobService:
     def __init__(self, db: Session):
@@ -154,3 +158,73 @@ class JobService:
             return True
 
         return False
+
+    def delete_job(self, user_id: int, job_id: int) -> bool:
+        """
+        Permanently delete a job and its associated S3 files.
+        """
+        job = self.get_user_job(user_id, job_id)
+        if not job:
+            return False
+
+        # Delete from S3
+        from app.services.storage import StorageService
+        storage = StorageService()
+        
+        # Try to delete PDF
+        if job.pdf_s3_key:
+            try:
+                storage.delete_file(job.pdf_s3_key)
+            except Exception as e:
+                logger.warning(f"Could not delete PDF file {job.pdf_s3_key}: {e}")
+
+        # Try to delete Audio
+        if job.audio_s3_key:
+            try:
+                storage.delete_file(job.audio_s3_key)
+            except Exception as e:
+                logger.warning(f"Could not delete audio file {job.audio_s3_key}: {e}")
+
+        # Delete database record
+        self.db.delete(job)
+        self.db.commit()
+        return True
+
+    def cleanup_failed_jobs(self, user_id: int) -> int:
+        """
+        Delete all failed or cancelled jobs for a user.
+        Returns the number of jobs deleted.
+        """
+        failed_jobs = (
+            self.db.query(Job)
+            .filter(
+                Job.user_id == user_id,
+                Job.status.in_([JobStatus.failed, JobStatus.cancelled])
+            )
+            .all()
+        )
+
+        count = 0
+        from app.services.storage import StorageService
+        storage = StorageService()
+
+        for job in failed_jobs:
+            # S3 Cleanup
+            if job.pdf_s3_key:
+                try:
+                    storage.delete_file(job.pdf_s3_key)
+                except Exception as e:
+                    logger.warning(f"Could not delete PDF {job.pdf_s3_key} for job {job.id}: {e}")
+            if job.audio_s3_key:
+                try:
+                    storage.delete_file(job.audio_s3_key)
+                except Exception as e:
+                    logger.warning(f"Could not delete audio {job.audio_s3_key} for job {job.id}: {e}")
+            
+            self.db.delete(job)
+            count += 1
+        
+        if count > 0:
+            self.db.commit()
+            
+        return count

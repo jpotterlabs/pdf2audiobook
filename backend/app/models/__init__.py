@@ -38,6 +38,7 @@ class JobStatus(str, enum.Enum):
     processing = "processing"
     completed = "completed"
     failed = "failed"
+    cancelled = "cancelled"
 
 
 class VoiceProvider(str, enum.Enum):

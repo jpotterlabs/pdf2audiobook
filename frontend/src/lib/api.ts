@@ -150,3 +150,16 @@ export const createCheckoutUrl = async (
   )
   return response.data
 }
+
+export const deleteJob = async (
+  jobId: number,
+  token: string
+): Promise<void> => {
+  await apiClient.delete(`/jobs/${jobId}`, getHeaders(token))
+}
+
+export const cleanupFailedJobs = async (token: string): Promise<any> => {
+  const response = await apiClient.delete('/jobs/cleanup', getHeaders(token))
+  return response.data
+}
+

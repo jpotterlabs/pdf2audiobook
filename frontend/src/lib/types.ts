@@ -23,6 +23,7 @@ export enum JobStatus {
   PROCESSING = 'processing',
   COMPLETED = 'completed',
   FAILED = 'failed',
+  CANCELLED = 'cancelled',
 }
 
 export enum VoiceProvider {
