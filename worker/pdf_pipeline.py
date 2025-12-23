@@ -305,8 +305,6 @@ class PDFToAudioPipeline:
 
             if progress_callback:
                 progress_callback(100)
-            if progress_callback:
-                progress_callback(100)
             return full_audio_data_path, estimated_cost, usage_stats
 
         except Exception as e:
