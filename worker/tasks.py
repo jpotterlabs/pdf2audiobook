@@ -65,8 +65,8 @@ def process_pdf_task(self, job_id: int):
         with open(pdf_path, "wb") as pdf_file:
             pdf_file.write(pdf_data)
 
-        # process_pdf now returns (file_path, cost) and uses work_dir
-        audio_file_path, estimated_cost = pipeline.process_pdf(
+        # process_pdf now returns (file_path, cost, usage_stats) and uses work_dir
+        audio_file_path, tts_cost, usage_stats = pipeline.process_pdf(
             pdf_path=pdf_path,
             voice_provider=job.voice_provider,
             voice_type=job.voice_type,
@@ -79,6 +79,15 @@ def process_pdf_task(self, job_id: int):
             work_dir=work_dir
         )
 
+        # Calculate final cost (TTS + LLM)
+        # TTS cost is already in tts_cost
+        # LLM cost: estimate $2.00 per 1M tokens (avg for GPT-3.5/Flash-like models)
+        token_cost = (usage_stats["tokens"] / 1_000_000) * 2.0
+        final_cost = float(tts_cost) + token_cost
+        
+        # Deduct credits using service logic
+        job_service.deduct_credits(job.user_id, final_cost)
+
         audio_key = f"audio/{job.user_id}/{job.id}.mp3"
         
         # Stream upload from disk
@@ -88,8 +97,14 @@ def process_pdf_task(self, job_id: int):
 
         job.audio_s3_key = audio_key
         job.audio_s3_url = audio_url
+        
         job_service.update_job_status(
-            job_id, JobStatus.completed, 100, estimated_cost=estimated_cost
+            job_id, 
+            JobStatus.completed, 
+            100, 
+            estimated_cost=final_cost,
+            chars_processed=usage_stats.get("chars", 0),
+            tokens_used=usage_stats.get("tokens", 0)
         )
 
         logger.info(f"Successfully processed job {job_id}")
