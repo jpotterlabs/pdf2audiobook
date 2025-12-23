@@ -120,7 +120,7 @@ class JobService:
 
         # 1. Check credit balance (Primary Method)
         # If user has enough credits for the estimated cost (or just > 0 if unknown)
-        if user.credit_balance and user.credit_balance > estimated_cost:
+        if user.credit_balance is not None and user.credit_balance >= estimated_cost:
             return True
 
         # 2. Check legacy one-time credits
@@ -165,7 +165,7 @@ class JobService:
         Deduct credits from user's balance. 
         Returns True if successful, False if insufficient confidence.
         """
-        user = self.db.query(User).filter(User.id == user_id).first()
+        user = self.db.query(User).filter(User.id == user_id).with_for_update().first()
         if not user:
             return False
 
