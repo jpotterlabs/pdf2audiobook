@@ -9,6 +9,7 @@ import { getCurrentUser } from '../lib/api'
 export default function Header() {
   const { getToken, userId } = useAuth()
   const [credits, setCredits] = useState<number | null>(null)
+  const [creditsError, setCreditsError] = useState(false)
 
   useEffect(() => {
     const fetchCredits = async () => {
@@ -18,8 +19,10 @@ export default function Header() {
         if (!token) return
         const user = await getCurrentUser(token)
         setCredits(user.credit_balance)
+        setCreditsError(false)
       } catch (error) {
         console.error('Failed to fetch user credits:', error)
+        setCreditsError(true)
       }
     }
 
@@ -78,10 +81,16 @@ export default function Header() {
           {/* User Button & Credits */}
           <div className="flex items-center space-x-4">
             <SignedIn>
-              {credits !== null && (
+              {credits !== null && !creditsError && (
                 <div className="hidden sm:flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-100 mr-2">
                   <Coins className="h-4 w-4 mr-1.5" />
                   {credits} Credits
+                </div>
+              )}
+              {creditsError && (
+                <div className="hidden sm:flex items-center px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm font-medium border border-gray-200 mr-2">
+                  <Coins className="h-4 w-4 mr-1.5 opacity-50" />
+                  --
                 </div>
               )}
               <UserButton afterSignOutUrl="/" />
