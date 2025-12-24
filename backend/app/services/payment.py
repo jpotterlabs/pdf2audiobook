@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 from hashlib import sha1
 import hmac
 import base64
+from loguru import logger
 
 from app.core.config import settings
 
@@ -28,7 +29,7 @@ class PaymentService:
         Generates a Paddle checkout URL for a given product.
         """
         if settings.TESTING_MODE:
-            print("--- MOCK PAYMENT: Generating dummy checkout URL ---")
+            logger.info("--- MOCK PAYMENT: Generating dummy checkout URL ---")
             return f"http://localhost:3000/mock-checkout?product_id={checkout_request.product_id}&email={checkout_request.customer_email}"
 
         url = f"{self._get_api_url()}/product/generate_pay_link"
@@ -55,7 +56,7 @@ class PaymentService:
         Verifies the signature of an incoming Paddle webhook using the official SDK.
         """
         if settings.TESTING_MODE:
-            print("--- MOCK PAYMENT: Skipping webhook verification ---")
+            logger.info("--- MOCK PAYMENT: Skipping webhook verification ---")
             return True
 
         if not signature:
@@ -65,7 +66,7 @@ class PaymentService:
         if not secret_key:
             # If no secret key is configured, we cannot verify. 
             # (Unless falling back to old method, but user asked for modern)
-            print("--- WARNING: PADDLE_WEBHOOK_SECRET_KEY not set. Verification failing. ---")
+            logger.warning("--- WARNING: PADDLE_WEBHOOK_SECRET_KEY not set. Verification failing. ---")
             return False
 
         try:
@@ -89,8 +90,8 @@ class PaymentService:
             return verifier.verify(req, Secret(secret_key))
             
         except ImportError:
-            print("--- ERROR: paddle-python-sdk not installed. cannot verify. ---")
+            logger.error("--- ERROR: paddle-python-sdk not installed. cannot verify. ---")
             return False
         except Exception as e:
-            print(f"--- Webhook verification failed: {e} ---")
+            logger.error(f"--- Webhook verification failed: {e} ---")
             return False

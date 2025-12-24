@@ -158,7 +158,7 @@ class MockTTS(TTSProvider):
         )
 
     def text_to_audio(self, text: str, voice_id: str, speed: float) -> bytes:
-        print(f"--- MOCK TTS: Generating audio for text (voice: {voice_id}, speed: {speed}) ---")
+        logger.info(f"--- MOCK TTS: Generating audio for text (voice: {voice_id}, speed: {speed}) ---")
         return self.silent_audio
 
 # --- TTS MANAGER ---

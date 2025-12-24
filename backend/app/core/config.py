@@ -2,6 +2,7 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from typing import List, Optional, Any
 import os
+from loguru import logger
 
 
 class Settings(BaseSettings):
@@ -137,8 +138,8 @@ class Settings(BaseSettings):
                 v = f"-----BEGIN PUBLIC KEY-----\n{v}\n-----END PUBLIC KEY-----"
             
             # Diagnostic info (safe)
-            print(f"DEBUG: CLERK_PEM_PUBLIC_KEY structure: length={len(v)}, "
-                  f"starts_with='{v[:20]}...', ends_with='...{v[-20:]}'")
+            logger.debug(f"CLERK_PEM_PUBLIC_KEY structure: length={len(v)}, "
+                         f"starts_with='{v[:20]}...', ends_with='...{v[-20:]}'")
         return v
 
     @property

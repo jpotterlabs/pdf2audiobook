@@ -1,5 +1,6 @@
 from celery import Celery
 from celery.signals import task_prerun, task_postrun, task_failure
+from loguru import logger
 import os
 import sys
 
@@ -44,7 +45,7 @@ celery_app.conf.beat_schedule = {
 def task_prerun_handler(
     sender=None, task_id=None, task=None, args=None, kwargs=None, **kwds
 ):
-    print(f"Task {task_id} ({task.name}) started")
+    logger.info(f"Task {task_id} ({task.name}) started")
 
 
 @task_postrun.connect
@@ -58,14 +59,14 @@ def task_postrun_handler(
     state=None,
     **kwds,
 ):
-    print(f"Task {task_id} ({task.name}) finished with state: {state}")
+    logger.info(f"Task {task_id} ({task.name}) finished with state: {state}")
 
 
 @task_failure.connect
 def task_failure_handler(
     sender=None, task_id=None, exception=None, traceback=None, einfo=None, **kwds
 ):
-    print(f"Task {task_id} failed: {exception}")
+    logger.error(f"Task {task_id} failed: {exception}")
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from jose import jwt, JWTError
 from datetime import datetime
 from typing import Optional, Dict, Any
+from loguru import logger
 
 from app.core.database import get_db
 from app.core.config import settings
@@ -37,11 +38,11 @@ def verify_clerk_token(token: str) -> dict:
         # The issuer (iss) and audience (azp) claims are also validated.
         header = jwt.get_unverified_header(token)
         payload_unverified = jwt.get_unverified_claims(token)
-        print(f"DEBUG: Token Header (KID): {header.get('kid')}")
-        print(f"DEBUG: Token Payload (ISS): {payload_unverified.get('iss')}")
-        print(f"DEBUG: Token Payload (AUD): {payload_unverified.get('aud')}")
-        print(f"DEBUG: Token Payload (AZP): {payload_unverified.get('azp')}")
-        print(f"DEBUG: Backend Settings - ISSUER: {settings.CLERK_JWT_ISSUER}, AUDIENCE: {settings.CLERK_JWT_AUDIENCE}")
+        logger.debug(f"Token Header (KID): {header.get('kid')}")
+        logger.debug(f"Token Payload (ISS): {payload_unverified.get('iss')}")
+        logger.debug(f"Token Payload (AUD): {payload_unverified.get('aud')}")
+        logger.debug(f"Token Payload (AZP): {payload_unverified.get('azp')}")
+        logger.debug(f"Backend Settings - ISSUER: {settings.CLERK_JWT_ISSUER}, AUDIENCE: {settings.CLERK_JWT_AUDIENCE}")
         
         # If the token has no audience, or we want to allow azp matching, we might need to adjust options.
         # But for now, let's see if the signature itself is the real problem.
@@ -86,14 +87,14 @@ def verify_clerk_token(token: str) -> dict:
         
         return user_data
     except JWTError as e:
-        print(f"JWT Verification Error: {str(e)}")
+        logger.warning(f"JWT Verification Error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Could not validate credentials: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
-        print(f"Unexpected Auth Error: {str(e)}")
+        logger.error(f"Unexpected Auth Error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unexpected authentication error",
@@ -118,7 +119,7 @@ def get_current_user(
         if user is None:
             # Auto-create user if they don't exist but have a valid token
             # This handles cases where the frontend hasn't explicitly called /verify
-            print(f"User not found in DB for auth_id: {user_data['auth_provider_id']}. Auto-creating...")
+            logger.info(f"User not found in DB for auth_id: {user_data['auth_provider_id']}. Auto-creating...")
             user = user_service.get_or_create_user(user_data)
 
         return user
@@ -126,7 +127,7 @@ def get_current_user(
         # Re-raise any HTTPExceptions from verify_clerk_token or our own logic
         raise
     except Exception as e:
-        print(f"Auth catch-all error: {str(e)}")
+        logger.error(f"Auth catch-all error: {str(e)}")
         raise credentials_exception
 
 def get_optional_current_user(
