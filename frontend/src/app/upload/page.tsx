@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react'
-import { createJob } from '../../lib/api'
+import { createJob, getCurrentUser } from '../../lib/api'
 import { Job } from '../../lib/types'
 import toast, { Toaster } from 'react-hot-toast'
 import { useAuth } from '@clerk/nextjs'
@@ -18,7 +18,24 @@ export default function UploadPage() {
   const [readingSpeed, setReadingSpeed] = useState(1.0)
   const [includeSummary, setIncludeSummary] = useState(true)
   const [conversionMode, setConversionMode] = useState('full')
+  const [userCredits, setUserCredits] = useState<number | null>(null)
   const { getToken } = useAuth()
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await getToken()
+        if (token) {
+          const user = await getCurrentUser(token)
+          setUserCredits(user.credit_balance)
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    fetchUser()
+  }, [getToken])
+
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -27,6 +44,8 @@ export default function UploadPage() {
     maxFiles: 1,
     maxSize: 50 * 1024 * 1024, // 50MB
     onDrop: (acceptedFiles) => {
+      // Check credits immediately on drop? Or wait for upload click?
+      // Let's warn on upload click but maybe show a banner if 0.
       if (acceptedFiles.length > 0) {
         setSelectedFile(acceptedFiles[0])
         setJobResponse(null)
@@ -36,6 +55,12 @@ export default function UploadPage() {
 
   const handleUpload = async () => {
     if (!selectedFile) return
+
+    // Client-side credit check
+    if (userCredits !== null && userCredits <= 0) {
+      toast.error('Insufficient credits. Please purchase a plan to continue.')
+      return
+    }
 
     setIsUploading(true)
     setUploadProgress(0)

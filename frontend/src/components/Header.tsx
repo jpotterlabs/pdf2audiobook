@@ -1,10 +1,31 @@
 'use client'
 
-import { UserButton, SignedIn, SignedOut } from '@clerk/nextjs'
+import { UserButton, SignedIn, SignedOut, useAuth } from '@clerk/nextjs'
 import Link from 'next/link'
-import { FileText, Upload, History, CreditCard } from 'lucide-react'
+import { FileText, Upload, History, CreditCard, Coins } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { getCurrentUser } from '../lib/api'
 
 export default function Header() {
+  const { getToken, userId } = useAuth()
+  const [credits, setCredits] = useState<number | null>(null)
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      if (!userId) return
+      try {
+        const token = await getToken()
+        if (!token) return
+        const user = await getCurrentUser(token)
+        setCredits(user.credit_balance)
+      } catch (error) {
+        console.error('Failed to fetch user credits:', error)
+      }
+    }
+
+    fetchCredits()
+  }, [userId, getToken])
+
   return (
     <header className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -54,9 +75,15 @@ export default function Header() {
             </SignedOut>
           </nav>
 
-          {/* User Button */}
+          {/* User Button & Credits */}
           <div className="flex items-center space-x-4">
             <SignedIn>
+              {credits !== null && (
+                <div className="hidden sm:flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-100 mr-2">
+                  <Coins className="h-4 w-4 mr-1.5" />
+                  {credits} Credits
+                </div>
+              )}
               <UserButton afterSignOutUrl="/" />
             </SignedIn>
             <SignedOut>
