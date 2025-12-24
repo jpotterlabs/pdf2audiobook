@@ -25,6 +25,8 @@ A production-ready SaaS platform for converting PDF documents to high-quality au
 - **Pro/Enterprise**: Higher limits and lower rates.
 
 [👉 **Read the Credits & Usage System Guide**](docs/CREDITS_AND_USAGE.md)
+[🗺️ **View the Product Roadmap**](docs/ROADMAP.md)
+
 
 ## 🏗️ Architecture
 
