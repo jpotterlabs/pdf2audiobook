@@ -76,7 +76,14 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
 export function useCredits() {
     const context = useContext(CreditsContext)
     if (context === undefined) {
-        throw new Error('useCredits must be used within a CreditsProvider')
+        // Fallback for when provider is missing (e.g. missing Clerk key/no-auth mode)
+        // This prevents the app from crashing in development or build environments
+        return {
+            credits: null,
+            loading: false,
+            error: false,
+            refreshCredits: async () => { }
+        }
     }
     return context
 }
