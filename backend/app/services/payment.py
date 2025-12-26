@@ -3,8 +3,7 @@ from typing import Optional, List, Dict, Any
 from loguru import logger
 from paddle_billing import Client, Environment, Options
 from paddle_billing.Notifications import Secret, Verifier
-from paddle_billing.Resources.Transactions.Operations import CreateTransaction
-from paddle_billing.Resources.Transactions.Operations.CreateTransaction import TransactionItem
+from paddle_billing.Resources.Transactions.Operations.CreateTransaction import CreateTransaction, TransactionCreateItem
 
 from app.core.config import settings
 
@@ -34,7 +33,7 @@ class PaymentService:
         # Note: In a real production app, you might want to associate this with a Customer ID if known
         transaction = self.client.transactions.create(CreateTransaction(
             items=[
-                TransactionItem(price_id=checkout_request.product_id, quantity=1)
+                TransactionCreateItem(price_id=checkout_request.product_id, quantity=1)
             ],
             # Pass email in custom data or use it to find/create customer
             custom_data={"user_email": checkout_request.customer_email} if checkout_request.customer_email else None
