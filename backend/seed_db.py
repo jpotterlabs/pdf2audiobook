@@ -79,6 +79,7 @@ def run_db_fixes():
                     name = EXCLUDED.name,
                     description = EXCLUDED.description,
                     price = EXCLUDED.price,
+                    currency = EXCLUDED.currency,
                     credits_included = EXCLUDED.credits_included,
                     subscription_tier = EXCLUDED.subscription_tier,
                     type = EXCLUDED.type,

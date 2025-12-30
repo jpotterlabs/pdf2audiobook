@@ -7,10 +7,9 @@ from loguru import logger
 from app.core.config import settings
 from app.core.database import get_db
 from app.services.payment import PaymentService, PaddleCheckoutRequest
-from app.schemas import Job, Product, User
+from app.schemas import Job, Product, User as UserSchema
 from app.services.auth import get_current_user
-from app.models import User, Product as ProductModel
-from app.core.database import get_db
+from app.models import User as UserModel, Product as ProductModel
 
 router = APIRouter()
 
@@ -50,7 +49,7 @@ class CheckoutURLResponse(BaseModel):
 )
 async def create_checkout_url(
     request: CheckoutURLRequest, 
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -92,4 +91,4 @@ async def create_checkout_url(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to initiate checkout with payment provider."
-        )
+        ) from e

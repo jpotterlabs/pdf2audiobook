@@ -7,6 +7,10 @@ from paddle_billing.Resources.Transactions.Operations.CreateTransaction import C
 
 from app.core.config import settings
 
+class PaddlePriceNotFoundError(Exception):
+    """Raised when no prices are found for a Paddle product."""
+    pass
+
 class PaddleCheckoutRequest(BaseModel):
     product_id: str  # In Billing, this is usually the Price ID
     customer_email: Optional[str] = None
@@ -38,7 +42,7 @@ class PaymentService:
             
             prices = list(self.client.prices.list(ListPrices(product_ids=[price_id])))
             if not prices:
-                raise Exception(f"No prices found for Paddle product {price_id}")
+                raise PaddlePriceNotFoundError(f"No prices found for Paddle product {price_id}")
             
             # Select the first active price
             # In a more complex setup, you might filter by currency or frequency
