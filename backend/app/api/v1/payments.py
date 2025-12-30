@@ -71,13 +71,13 @@ async def create_checkout_url(
         )
     
     # 2. Ensure we have a Paddle ID for this product
-    if not product.paddle_product_id or product.paddle_product_id.startswith(("free_", "pro_", "enterprise_")):
+    if not product.paddle_product_id or product.paddle_product_id.startswith(("mock_", "placeholder_")):
         logger.warning(f"Product {product.name} (ID: {product.id}) has missing or placeholder Paddle ID: {product.paddle_product_id}")
         # In production, this should be a hard error. In dev/sandbox, we might want to allow it if mocked.
         if not settings.DEBUG:
              raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="This product is not correctly configured for payments. Please contact support."
+                detail=f"This product ({product.name}) is not correctly configured for payments. Missing valid Paddle ID."
             )
 
     payment_service = PaymentService()
