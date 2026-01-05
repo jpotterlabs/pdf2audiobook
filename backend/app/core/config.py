@@ -116,8 +116,6 @@ class Settings(BaseSettings):
                     self.ALLOWED_HOSTS.append(self.SANDBOX_FRONTEND_URL)
 
         # Diagnostic logging for voice environment variables
-        import logging
-        logger = logging.getLogger(__name__)
         voice_vars = {k: v for k, v in os.environ.items() if k.startswith("GOOGLE_VOICE_")}
         if voice_vars:
             logger.info(f"Detected Google Voice Env Vars: {voice_vars}")
