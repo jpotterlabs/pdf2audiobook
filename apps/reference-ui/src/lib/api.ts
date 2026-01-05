@@ -8,7 +8,11 @@ import { Job, Product, User } from './types'
  * - We normalize to always target the versioned API under /api/v1.
  */
 const getApiBaseUrl = () => {
-  const raw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  const env = process.env.NEXT_PUBLIC_ENVIRONMENT || 'sandbox'
+  const raw =
+    env === 'production'
+      ? process.env.NEXT_PUBLIC_PROD_API_URL || 'https://api.pdf2audiobook.xyz'
+      : process.env.NEXT_PUBLIC_SANDBOX_API_URL || 'http://localhost:8000'
 
   try {
     const url = new URL(raw)
