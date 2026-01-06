@@ -7,6 +7,12 @@ const defaultUrl = "https://api.pdf2audiobook.xyz"
 
 let finalUrl = rawUrl || defaultUrl
 
+// Safety Check: Force Production URL if NODE_ENV is production
+// This overrides any stale "localhost" env vars on Vercel
+if (process.env.NODE_ENV === "production" && (finalUrl.includes("localhost") || !finalUrl)) {
+  finalUrl = "https://api.pdf2audiobook.xyz"
+}
+
 
 const API_BASE_URL = finalUrl
 
