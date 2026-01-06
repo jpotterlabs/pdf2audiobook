@@ -16,13 +16,6 @@ if (process.env.NODE_ENV === "production" && finalUrl.includes("localhost")) {
   finalUrl = "https://api.pdf2audiobook.xyz"
 }
 
-console.log("Debug Config:", {
-  NODE_ENV: process.env.NODE_ENV,
-  NEXT_PUBLIC_ENVIRONMENT: process.env.NEXT_PUBLIC_ENVIRONMENT,
-  ResolvedURL: finalUrl,
-  RawURL: rawUrl
-});
-
 const API_BASE_URL = finalUrl
 
 interface ApiError {
