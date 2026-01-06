@@ -34,61 +34,70 @@ def sync_products():
             return
 
         for pp in paddle_products:
-            logger.info(f"Found Paddle Product: {pp.name} (ID: {pp.id})")
-            
-            # Determine tier and type based on name or custom data
-            # This is a heuristic matching our known plan names
-            tier = "free"
-            ptype = "one_time"
-            price = 0.0
-            credits = 0
-            
-            name_lower = pp.name.lower()
-            if "discover" in name_lower:
+            try:
+                logger.info(f"Processing Paddle Product: {pp.name} (ID: {pp.id})")
+                
+                # Determine tier and type based on name or custom data
                 tier = "free"
-                ptype = "one_time" # Although free isn't really a product usually
-            elif "research" in name_lower:
-                tier = "pro"
-                ptype = "subscription"
-                price = 9.99
-                credits = 3
-            elif "intelligence" in name_lower:
-                tier = "enterprise"
-                ptype = "subscription"
-                price = 19.99
-                credits = 7
-            else:
-                 logger.warning(f"Skipping unknown product: {pp.name}")
-                 continue
+                ptype = "one_time"
+                price = 0.0
+                credits = 0
+                
+                name_lower = pp.name.lower()
+                if "discover" in name_lower:
+                    tier = "free"
+                    ptype = "one_time"
+                elif "research" in name_lower:
+                    tier = "pro"
+                    ptype = "subscription"
+                    price = 9.99
+                    credits = 3
+                elif "intelligence" in name_lower:
+                    tier = "enterprise"
+                    ptype = "subscription"
+                    price = 19.99
+                    credits = 7
+                else:
+                     logger.warning(f"Skipping unknown product: {pp.name}")
+                     continue
 
-            # Upsert into DB
-            product = db.query(Product).filter(Product.subscription_tier == tier).first()
-            if not product:
-                logger.info(f"Creating new local product records for tier: {tier}")
-                product = Product(
-                    paddle_product_id=pp.id,
-                    name=pp.name,
-                    description=pp.description or "",
-                    price=price,
-                    currency="USD", # Simplified
-                    credits_included=credits,
-                    subscription_tier=tier,
-                    type=ptype,
-                    is_active=True
-                )
-                db.add(product)
-            else:
-                logger.info(f"Updating ID for local product tier: {tier} -> {pp.id}")
+                # Upsert into DB: Prioritise looking up by paddle_product_id to avoid IntegrityErrors
+                product = db.query(Product).filter(Product.paddle_product_id == pp.id).first()
+                
+                if not product:
+                    # If not found by ID, check if we have a stale record for this tier
+                    product = db.query(Product).filter(Product.subscription_tier == tier).first()
+                    if product:
+                        logger.info(f"Migrating local product tier '{tier}' to new Paddle ID: {pp.id}")
+                    else:
+                        logger.info(f"Creating new local product records for tier: {tier}")
+                        product = Product(subscription_tier=tier)
+                        db.add(product)
+
+                # Update all fields
                 product.paddle_product_id = pp.id
                 product.name = pp.name
-                product.description = pp.description or product.description
-                # We trust our local config for price/credits unless we want to fetch Prices too
+                product.description = pp.description or ""
+                product.price = price
+                product.currency = "USD"
+                product.credits_included = credits
+                product.type = ptype
+                product.is_active = True
+                
+                db.flush() # Check for errors locally
+                logger.info(f"Synced {tier} tier product: {pp.id}")
+                
+            except Exception as item_err:
+                logger.error(f"Failed to sync product '{pp.name}': {item_err}")
+                db.rollback()
+                # Continue to next product
+                continue
             
         db.commit()
         logger.info("Product sync completed successfully!")
 
     except Exception as e:
-        logger.error(f"Failed to sync products: {e}")
+        logger.error(f"Critical failure in product sync: {e}")
         db.rollback()
     finally:
         db.close()
