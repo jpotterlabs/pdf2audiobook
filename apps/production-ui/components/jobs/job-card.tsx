@@ -30,7 +30,8 @@ import { useUser } from "@clerk/nextjs"
 
 export function JobCard({ job, onDelete }: JobCardProps) {
   const { user } = useUser()
-  const isAdmin = user?.primaryEmailAddress?.emailAddress === "potter.jason@gmail.com"
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
+  const isAdmin = adminEmail && user?.primaryEmailAddress?.emailAddress === adminEmail
 
   const [deleting, setDeleting] = useState(false)
   const [showPlayer, setShowPlayer] = useState(false)
