@@ -27,13 +27,13 @@ export function SetupBanner() {
                 rel="noopener noreferrer"
                 className="underline"
               >
-                Clerk Dashboard
+                Clerk Dashboard (Live Keys)
               </a>
             </li>
           )}
           {!hasApiUrl && (
             <li>
-              <strong>NEXT_PUBLIC_API_URL</strong> - Your backend API URL (defaults to http://localhost:8000)
+              <strong>NEXT_PUBLIC_API_URL</strong> - Your backend API URL (defaults to https://api.pdf2audiobook.xyz)
             </li>
           )}
         </ul>

@@ -76,44 +76,24 @@ class Settings(BaseSettings):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
-        # --- Environment Toggle Logic ---
-        if self.ENVIRONMENT.lower() == "production":
-            logger.info("🚀 Loading PRODUCTION configuration")
-            
-            # Paddle
-            if self.PROD_PADDLE_API_KEY: self.PADDLE_API_KEY = self.PROD_PADDLE_API_KEY
-            if self.PROD_PADDLE_VENDOR_ID: self.PADDLE_VENDOR_ID = self.PROD_PADDLE_VENDOR_ID
-            if self.PROD_PADDLE_WEBHOOK_SECRET_KEY: self.PADDLE_WEBHOOK_SECRET_KEY = self.PROD_PADDLE_WEBHOOK_SECRET_KEY
-            self.PADDLE_ENVIRONMENT = "production"
-
-            # Clerk
-            if self.PROD_CLERK_PEM_PUBLIC_KEY: self.CLERK_PEM_PUBLIC_KEY = self.PROD_CLERK_PEM_PUBLIC_KEY
-            if self.PROD_CLERK_JWT_ISSUER: self.CLERK_JWT_ISSUER = self.PROD_CLERK_JWT_ISSUER
-            if self.PROD_CLERK_JWT_AUDIENCE: self.CLERK_JWT_AUDIENCE = self.PROD_CLERK_JWT_AUDIENCE
-
-            # CORS
-            if self.PROD_FRONTEND_URL and self.PROD_FRONTEND_URL not in self.ALLOWED_HOSTS:
-                if isinstance(self.ALLOWED_HOSTS, list):
-                    self.ALLOWED_HOSTS.append(self.PROD_FRONTEND_URL)
+        # --- Production-Only Configuration ---
+        logger.info("🚀 Loading PRODUCTION configuration")
         
-        else: # sandbox/development
-            logger.info("🧪 Loading SANDBOX/DEV configuration")
+        # Paddle
+        if self.PROD_PADDLE_API_KEY: self.PADDLE_API_KEY = self.PROD_PADDLE_API_KEY
+        if self.PROD_PADDLE_VENDOR_ID: self.PADDLE_VENDOR_ID = self.PROD_PADDLE_VENDOR_ID
+        if self.PROD_PADDLE_WEBHOOK_SECRET_KEY: self.PADDLE_WEBHOOK_SECRET_KEY = self.PROD_PADDLE_WEBHOOK_SECRET_KEY
+        self.PADDLE_ENVIRONMENT = "production"
 
-            # Paddle
-            if self.SANDBOX_PADDLE_API_KEY: self.PADDLE_API_KEY = self.SANDBOX_PADDLE_API_KEY
-            if self.SANDBOX_PADDLE_VENDOR_ID: self.PADDLE_VENDOR_ID = self.SANDBOX_PADDLE_VENDOR_ID
-            if self.SANDBOX_PADDLE_WEBHOOK_SECRET_KEY: self.PADDLE_WEBHOOK_SECRET_KEY = self.SANDBOX_PADDLE_WEBHOOK_SECRET_KEY
-            self.PADDLE_ENVIRONMENT = "sandbox"
+        # Clerk
+        if self.PROD_CLERK_PEM_PUBLIC_KEY: self.CLERK_PEM_PUBLIC_KEY = self.PROD_CLERK_PEM_PUBLIC_KEY
+        if self.PROD_CLERK_JWT_ISSUER: self.CLERK_JWT_ISSUER = self.PROD_CLERK_JWT_ISSUER
+        if self.PROD_CLERK_JWT_AUDIENCE: self.CLERK_JWT_AUDIENCE = self.PROD_CLERK_JWT_AUDIENCE
 
-            # Clerk
-            if self.SANDBOX_CLERK_PEM_PUBLIC_KEY: self.CLERK_PEM_PUBLIC_KEY = self.SANDBOX_CLERK_PEM_PUBLIC_KEY
-            if self.SANDBOX_CLERK_JWT_ISSUER: self.CLERK_JWT_ISSUER = self.SANDBOX_CLERK_JWT_ISSUER
-            if self.SANDBOX_CLERK_JWT_AUDIENCE: self.CLERK_JWT_AUDIENCE = self.SANDBOX_CLERK_JWT_AUDIENCE
-
-            # CORS
-            if self.SANDBOX_FRONTEND_URL and self.SANDBOX_FRONTEND_URL not in self.ALLOWED_HOSTS:
-                 if isinstance(self.ALLOWED_HOSTS, list):
-                    self.ALLOWED_HOSTS.append(self.SANDBOX_FRONTEND_URL)
+        # CORS
+        if self.PROD_FRONTEND_URL and self.PROD_FRONTEND_URL not in self.ALLOWED_HOSTS:
+            if isinstance(self.ALLOWED_HOSTS, list):
+                self.ALLOWED_HOSTS.append(self.PROD_FRONTEND_URL)
 
         # Diagnostic logging for voice environment variables
         voice_vars = {k: v for k, v in os.environ.items() if k.startswith("GOOGLE_VOICE_")}
