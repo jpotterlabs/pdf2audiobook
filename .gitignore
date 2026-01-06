@@ -3,7 +3,7 @@
 .env
 .env.*
 .env.local
-! .env.example
+
 
 # --- Service Account Keys ---
 # Ignore common names for service account key files (e.g., Google Cloud JSON keys)
