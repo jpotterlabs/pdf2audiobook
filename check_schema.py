@@ -23,9 +23,9 @@ try:
                 missing.append(col)
         
         if missing:
-             print(f"\n❌ MISSING COLUMNS: {missing}")
+            print(f"\n❌ MISSING COLUMNS: {missing}")
         else:
-             print("\n✅ All expected columns present.")
+            print("\n✅ All expected columns present.")
 
 except Exception as e:
     print(f"Error querying database: {e}")

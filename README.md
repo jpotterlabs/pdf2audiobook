@@ -9,7 +9,7 @@ An open-source, self-hosted platform for converting PDF documents to high-qualit
 - **Smart Summarization**: Use any LLM (via OpenRouter) to generate executive summaries and concept explanations before listening.
 - **Multiple TTS Engines**:
   - **Local**: Run [Kokoro-FastAPI](https://github.com/remsky/kokoro-fastapi) or any OpenAI-compatible TTS locally.
-  - **remote**: Google Cloud TTS, OpenAI, AWS Polly, Azure, ElevenLabs.
+  - **Remote**: Google Cloud TTS, OpenAI, AWS Polly, Azure, ElevenLabs.
 - **Cost Tracking**: Estimate LLM and Cloud TTS costs (or $0.00 for local engines).
 
 ## 🏗️ Architecture

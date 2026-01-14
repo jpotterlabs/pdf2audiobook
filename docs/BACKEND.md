@@ -45,7 +45,7 @@ graph TD
     - Providing Swagger UI documentation (at `/docs`).
 
 ### 2. Background Processing: Celery + Redis
-- **Broker**: Redis (`192.168.0.225:6379`).
+- **Broker**: Redis (`$REDIS_URL`).
 - **Worker Logic**: Located in `worker/tasks.py`.
 - **Purpose**: Decouples long-running conversions from the web server, allowing for a responsive UI while processing happens in the background.
 
@@ -88,7 +88,7 @@ graph TD
 - **"Port already in use"**: The web server didn't shut down properly. Run:
   `fuser -k 8000/tcp`
 - **Worker not picking up tasks**: Check if the Redis broker is reachable. The worker logs will show "Connecting to Celery Broker".
-- **Database Errors**: Ensure `test.db` exists or is properly initialized via migrations.
+- **Database Errors**: Ensure `dev.db` exists or is properly initialized via migrations.
 
 ## 📈 Metric Tracking
 All jobs track several performance metrics:
