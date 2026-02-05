@@ -10,14 +10,14 @@ export default function TermsPage() {
             <section className="mb-8">
                 <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
                 <p className="mb-4">
-                    Welcome to potterlabs. By accessing our website and using our services, you agree to be bound by these Terms and Conditions.
+                    Welcome to PDF2Audiobook. By accessing our website and using our services, you agree to be bound by these Terms and Conditions.
                 </p>
             </section>
 
             <section className="mb-8">
                 <h2 className="text-2xl font-semibold mb-4">2. Company Information</h2>
                 <p className="mb-4">
-                    potterlabs ("we", "us", "our") provides AI-powered PDF to audiobook conversion services.
+                    PDF2Audiobook ("we", "us", "our") provides AI-powered PDF to audiobook conversion services.
                 </p>
             </section>
 
